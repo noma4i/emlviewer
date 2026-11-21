@@ -75,8 +75,42 @@ async function feedback(request, env) {
   }
 }
 
+async function video(request, env) {
+  const asset = await env.ASSETS.fetch(new Request(request.url, { method: "GET" }));
+  if (!asset.ok) return asset;
+
+  const body = await asset.arrayBuffer();
+  const total = body.byteLength;
+  const headers = new Headers(asset.headers);
+  headers.set("Content-Type", "video/mp4");
+  headers.set("Accept-Ranges", "bytes");
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("Range") || "");
+  if (!range || (!range[1] && !range[2])) {
+    headers.set("Content-Length", total);
+    return new Response(request.method === "HEAD" ? null : body, { status: 200, headers });
+  }
+
+  const size = BigInt(total);
+  const first = range[1] ? BigInt(range[1]) : null;
+  const last = range[2] ? BigInt(range[2]) : null;
+  if (size === 0n || (first !== null && (first >= size || (last !== null && last < first))) || (first === null && last === 0n)) {
+    headers.set("Content-Range", `bytes */${total}`);
+    headers.set("Content-Length", "0");
+    return new Response(null, { status: 416, headers });
+  }
+
+  const start = first === null ? (last >= size ? 0n : size - last) : first;
+  const end = first === null || last === null || last >= size ? size - 1n : last;
+  headers.set("Content-Range", `bytes ${start}-${end}/${total}`);
+  headers.set("Content-Length", String(end - start + 1n));
+  return new Response(request.method === "HEAD" ? null : body.slice(Number(start), Number(end + 1n)), { status: 206, headers });
+}
+
 export default {
   fetch(request, env) {
+    if ((request.method === "GET" || request.method === "HEAD") && new URL(request.url).pathname.endsWith(".mp4")) {
+      return video(request, env);
+    }
     if (request.method === "POST" && new URL(request.url).pathname === "/api/feedback") {
       return feedback(request, env);
     }
