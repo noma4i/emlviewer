@@ -6,6 +6,7 @@ struct WebView: NSViewRepresentable {
     let html: String
     let message: LoadedMessage
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
+    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFontFamily
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -24,20 +25,33 @@ struct WebView: NSViewRepresentable {
     func updateNSView(_ view: WKWebView, context: Context) {
         let zoom = fontSize / 13
         if view.pageZoom != zoom { view.pageZoom = zoom }
-        if context.coordinator.loadedID != message.id {
+        if context.coordinator.loadedID != message.id || context.coordinator.loadedFont != fontFamily {
             context.coordinator.handler?.message = message.message
             view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
             context.coordinator.loadedID = message.id
+            context.coordinator.loadedFont = fontFamily
         }
     }
 
     private func wrappedHTML(_ inner: String) -> String {
-        let lower = inner.lowercased()
-        if lower.contains("<html") { return inner }
+        let family = fontFamily == "System" ? "-apple-system" : "\"\(fontFamily)\""
+        let style = "<style>body{font-family:\(family);}</style>"
+        if inner.range(of: "<html\\b", options: [.regularExpression, .caseInsensitive]) != nil {
+            if let head = inner.range(of: "<head\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
+                var document = inner
+                document.insert(contentsOf: style, at: head.upperBound)
+                return document
+            }
+            if let html = inner.range(of: "<html\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
+                var document = inner
+                document.insert(contentsOf: "<head>\(style)</head>", at: html.upperBound)
+                return document
+            }
+        }
         return """
         <!doctype html>
         <html><head><meta charset="utf-8">
-        <style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:16px;color:#222;}</style>
+        <style>body{font-family:\(family);padding:16px;color:#222;}</style>
         </head><body>\(inner)</body></html>
         """
     }
@@ -45,6 +59,7 @@ struct WebView: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate {
         var handler: CIDSchemeHandler?
         var loadedID: UUID?
+        var loadedFont: String?
 
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,

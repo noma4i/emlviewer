@@ -142,7 +142,7 @@ struct HeaderPanel: View {
 struct BodyView: View {
     let message: LoadedMessage
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
-    @AppStorage(AppPreferences.plainFont) private var plainFont = "monospaced"
+    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFontFamily
 
     var body: some View {
         Group {
@@ -154,7 +154,7 @@ struct BodyView: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(18)
-                        .font(.system(size: fontSize, design: plainFont == "monospaced" ? .monospaced : .default))
+                        .font(AppPreferences.font(fontFamily, size: fontSize))
                 }
             } else {
                 Text("(no body)")
