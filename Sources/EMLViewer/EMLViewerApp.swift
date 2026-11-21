@@ -11,12 +11,14 @@ struct EMLViewerApp: App {
             ContentView()
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .environmentObject(state)
-                .frame(minWidth: 520, minHeight: 380)
+                .frame(minWidth: 520, idealWidth: 900, maxWidth: .infinity,
+                       minHeight: 380, idealHeight: 640, maxHeight: .infinity)
                 .task {
                     openFromCommandLine()
                 }
         }
         .defaultSize(width: 900, height: 640)
+        .windowResizability(.contentMinSize)
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unifiedCompact)
         .commands {
