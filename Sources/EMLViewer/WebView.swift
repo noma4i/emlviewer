@@ -79,8 +79,12 @@ struct WebView: NSViewRepresentable {
         var loadedScheme: ColorScheme?
         var navigation: WKNavigation?
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
             guard navigation === self.navigation else { return }
+            webView.alphaValue = 1
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             webView.alphaValue = 1
         }
 
