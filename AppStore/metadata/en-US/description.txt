@@ -15,7 +15,7 @@ ATTACHMENTS
 • Attachment file names are sanitized when files are saved.
 
 COMFORT
-• Choose light, dark, or system appearance.
+• Ten color themes: Light, Dark, Solarized Light and Dark, Nord, Dracula, Gruvbox Dark, One Dark and Sepia. HTML mail is recolored so text is always readable.
 • Set the message font family and text size in settings.
 • The app remembers its window size between launches.
 
@@ -27,6 +27,7 @@ PRIVACY
 • The app is sandboxed and does not require an account.
 • The app collects no data and uses no analytics or tracking.
 • HTML messages may load remote images from their source servers.
+• Turn off remote images to block all remote content.
 
 Use EML/MSG Viewer to read saved messages and open or save their attachments on your Mac. Choose the appearance and text settings that suit your reading preferences.
 
