@@ -21,6 +21,7 @@ struct WebView: NSViewRepresentable {
         context.coordinator.handler = handler
 
         let view = WKWebView(frame: .zero, configuration: config)
+        view.alphaValue = 0
         view.underPageBackgroundColor = palette.nsColor(palette.background)
         view.navigationDelegate = context.coordinator
         return view
@@ -33,7 +34,8 @@ struct WebView: NSViewRepresentable {
         if context.coordinator.loadedID != message.id || context.coordinator.loadedFont != fontFamily
             || context.coordinator.loadedTheme != appearance || context.coordinator.loadedScheme != scheme {
             context.coordinator.handler?.message = message.message
-            view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
+            view.alphaValue = 0
+            context.coordinator.navigation = view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
             context.coordinator.loadedID = message.id
             context.coordinator.loadedFont = fontFamily
             context.coordinator.loadedTheme = appearance
@@ -75,6 +77,12 @@ struct WebView: NSViewRepresentable {
         var loadedFont: String?
         var loadedTheme: Theme?
         var loadedScheme: ColorScheme?
+        var navigation: WKNavigation?
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard navigation === self.navigation else { return }
+            webView.alphaValue = 1
+        }
 
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,

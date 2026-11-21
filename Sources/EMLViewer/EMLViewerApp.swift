@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import WebKit
 
 @main
 struct EMLViewerApp: App {
@@ -46,8 +47,13 @@ struct EMLViewerApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static var warmWebView: WKWebView?
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         Theme.load().applyToApp()
+        let view = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        view.loadHTMLString("<html></html>", baseURL: nil)
+        Self.warmWebView = view
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

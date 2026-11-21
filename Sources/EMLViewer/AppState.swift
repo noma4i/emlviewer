@@ -25,6 +25,7 @@ final class AppState: ObservableObject {
     ].compactMap { $0 }
 
     @Published var message: LoadedMessage?
+    @Published var isLoading = false
     @Published var sourceURL: URL?
     @Published var errorText: String?
     @Published var toast: String?
@@ -36,6 +37,7 @@ final class AppState: ObservableObject {
     // MARK: - Loading
 
     func open(_ url: URL) {
+        isLoading = true
         let id = UUID()
         openID = id
         Task {
@@ -61,6 +63,7 @@ final class AppState: ObservableObject {
                 errorText = "Failed to open: \(error.localizedDescription)"
                 message = nil
             }
+            isLoading = false
         }
     }
 

@@ -12,7 +12,7 @@ struct ContentView: View {
         ZStack {
             if let msg = state.message {
                 MessageView(message: msg).id(msg.id)
-            } else {
+            } else if !state.isLoading {
                 WelcomeView()
             }
             ToastOverlay()
