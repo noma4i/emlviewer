@@ -5,6 +5,7 @@ enum AppPreferences {
     static let appearance = "com.noma4i.emlviewer.appearance"
     static let fontSize = "com.noma4i.emlviewer.fontSize"
     static let fontFamily = "com.noma4i.emlviewer.fontFamily"
+    static let loadRemoteImages = "com.noma4i.emlviewer.loadRemoteImages"
     static let lastSaveFolder = "com.noma4i.emlviewer.lastSaveFolder"
 
     static let defaultFont = "Menlo"
@@ -28,6 +29,7 @@ struct SettingsView: View {
     @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
     @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
+    @AppStorage(AppPreferences.loadRemoteImages) private var loadRemoteImages = true
 
     var body: some View {
         Form {
@@ -46,6 +48,7 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.menu)
+            Toggle("Load remote images", isOn: $loadRemoteImages)
         }
         .formStyle(.grouped)
         .frame(width: 460)

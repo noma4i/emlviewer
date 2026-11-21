@@ -10,6 +10,7 @@ struct WebView: NSViewRepresentable {
     private var palette: ThemePalette { appearance.palette(scheme) }
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
     @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
+    @AppStorage(AppPreferences.loadRemoteImages) private var loadRemoteImages = true
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -28,11 +29,34 @@ struct WebView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.updateID += 1
+        let updateID = coordinator.updateID
+        if !loadRemoteImages && coordinator.ruleList == nil {
+            view.stopLoading()
+            view.alphaValue = 0
+            coordinator.loadedRemote = nil
+            Task { @MainActor [weak view, weak coordinator] in
+                let ruleList = await Coordinator.remoteRuleList.value
+                guard let view, let coordinator, coordinator.updateID == updateID, let ruleList else { return }
+                coordinator.ruleList = ruleList
+                updateNSView(view, context: context)
+            }
+            return
+        }
+        if let ruleList = coordinator.ruleList {
+            if loadRemoteImages {
+                view.configuration.userContentController.remove(ruleList)
+            } else {
+                view.configuration.userContentController.add(ruleList)
+            }
+        }
         view.underPageBackgroundColor = palette.nsColor(palette.background)
         let zoom = fontSize / 13
         if view.pageZoom != zoom { view.pageZoom = zoom }
         if context.coordinator.loadedID != message.id || context.coordinator.loadedFont != fontFamily
-            || context.coordinator.loadedTheme != appearance || context.coordinator.loadedScheme != scheme {
+            || context.coordinator.loadedTheme != appearance || context.coordinator.loadedScheme != scheme
+            || context.coordinator.loadedRemote != loadRemoteImages {
             context.coordinator.handler?.message = message.message
             view.alphaValue = 0
             context.coordinator.navigation = view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
@@ -40,6 +64,7 @@ struct WebView: NSViewRepresentable {
             context.coordinator.loadedFont = fontFamily
             context.coordinator.loadedTheme = appearance
             context.coordinator.loadedScheme = scheme
+            context.coordinator.loadedRemote = loadRemoteImages
         }
     }
 
@@ -72,11 +97,28 @@ struct WebView: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
+        static let remoteRuleList = Task { @MainActor () -> WKContentRuleList? in
+            let rules = """
+            [{"trigger":{"url-filter":"^https?://","resource-type":["image","style-sheet","font","media",\
+            "svg-document","raw"]},"action":{"type":"block"}}]
+            """
+            do {
+                return try await WKContentRuleListStore.default().compileContentRuleList(
+                    forIdentifier: "block-remote", encodedContentRuleList: rules
+                )
+            } catch {
+                NSLog("Failed to compile remote content rules: %@", error.localizedDescription)
+                return nil
+            }
+        }
         var handler: CIDSchemeHandler?
+        var ruleList: WKContentRuleList?
+        var updateID = 0
         var loadedID: UUID?
         var loadedFont: String?
         var loadedTheme: Theme?
         var loadedScheme: ColorScheme?
+        var loadedRemote: Bool?
         var navigation: WKNavigation?
 
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
