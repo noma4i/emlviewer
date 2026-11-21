@@ -44,16 +44,31 @@ struct WindowAccessor: NSViewRepresentable {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            guard let window, configuredWindow !== window,
-                  window.frameAutosaveName != "EMLViewerMainWindow" else { return }
+            guard configuredWindow !== window else { return }
+            NotificationCenter.default.removeObserver(self)
             configuredWindow = window
-            let savedFrame = UserDefaults.standard.string(forKey: "NSWindow Frame EMLViewerMainWindow")
+            guard let window else { return }
             DispatchQueue.main.async {
-                if let savedFrame {
-                    window.setFrame(from: savedFrame)
+                guard self.configuredWindow === window else { return }
+                if let savedFrame = UserDefaults.standard.string(forKey: "mainWindowFrame") {
+                    var frame = NSRectFromString(savedFrame)
+                    if let visibleFrame = window.screen?.visibleFrame {
+                        frame.size.width = min(frame.width, visibleFrame.width)
+                        frame.size.height = min(frame.height, visibleFrame.height)
+                        frame.origin.x = min(max(frame.minX, visibleFrame.minX), visibleFrame.maxX - frame.width)
+                        frame.origin.y = min(max(frame.minY, visibleFrame.minY), visibleFrame.maxY - frame.height)
+                    }
+                    window.setFrame(frame, display: true)
                 }
-                window.setFrameAutosaveName("EMLViewerMainWindow")
+                for name in [NSWindow.didResizeNotification, NSWindow.didMoveNotification, NSWindow.willCloseNotification] {
+                    NotificationCenter.default.addObserver(self, selector: #selector(self.saveFrame), name: name, object: window)
+                }
             }
+        }
+
+        @objc private func saveFrame() {
+            guard let window = configuredWindow, !window.styleMask.contains(.fullScreen) else { return }
+            UserDefaults.standard.set(NSStringFromRect(window.frame), forKey: "mainWindowFrame")
         }
     }
 
