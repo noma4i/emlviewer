@@ -62,8 +62,21 @@ final class MSGTests: XCTestCase {
         let msg = try loadSample()
         XCTAssertEqual(msg.subject, "Test Outlook message with attachments")
         XCTAssertEqual(msg.from, "Alice Example <alice@example.com>")
-        XCTAssertEqual(msg.to, "Bob Example <bob@example.com>")
+        XCTAssertEqual(msg.to, "Bob Example <bob@example.com>, \"Logan, Julia\" <julia@example.com>")
         XCTAssertEqual(msg.cc, "Carol Example <carol@example.com>")
+    }
+
+    func testDisplayRecipientsFallbackWithoutStorages() throws {
+        var data = try Data(contentsOf: sampleURL())
+        let name = Data("__recip_version1.0_#".utf16.flatMap { [UInt8($0 & 0xff), UInt8($0 >> 8)] })
+        var search = data.startIndex..<data.endIndex
+        while let range = data.range(of: name, in: search) {
+            data[range.lowerBound] = UInt8(ascii: "X")
+            search = range.upperBound..<data.endIndex
+        }
+        let part = try XCTUnwrap(MSG.parse(data))
+        XCTAssertTrue(part.rawHeaders.contains { $0.0 == "To" && $0.1 == "Bob Example <bob@example.com>" })
+        XCTAssertTrue(part.rawHeaders.contains { $0.0 == "Cc" && $0.1 == "Carol Example <carol@example.com>" })
     }
 
     func testDateDecodedFromFiletime() throws {

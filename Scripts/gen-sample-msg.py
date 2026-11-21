@@ -196,9 +196,23 @@ def main(out_path: str) -> None:
 
     add_unicode(root, "0037", "Test Outlook message with attachments")
     add_unicode(root, "0C1A", "Alice Example")
-    add_unicode(root, "0C1F", "alice@example.com")
+    add_unicode(root, "0C1F", "/O=EXAMPLE/CN=ALICE")
+    add_unicode(root, "5D01", "alice@example.com")
     add_unicode(root, "0E04", "Bob Example <bob@example.com>")
     add_unicode(root, "0E03", "Carol Example <carol@example.com>")
+    for index, recipient_type, name, email, smtp in [
+        (1, 1, "Logan, Julia", "julia@example.com", ""),
+        (0, 1, "Bob Example", "/O=EXAMPLE/CN=BOB", "bob@example.com"),
+        (2, 2, "Carol Example", "carol@example.com", ""),
+    ]:
+        recipient = root.add(StorageNode(f"__recip_version1.0_#{index:08X}", OBJ_STORAGE))
+        recipient.add(StorageNode("__properties_version1.0", OBJ_STREAM)).payload = (
+            bytes(8) + struct.pack("<HHIII", 3, 0x0C15, 0, recipient_type, 0)
+        )
+        add_unicode(recipient, "3001", name)
+        add_unicode(recipient, "3003", email)
+        if smtp:
+            add_unicode(recipient, "39FE", smtp)
     add_filetime(root, "0039", filetime_now())
     add_unicode(root, "1000",
         "Hi Bob,\r\n\r\n"

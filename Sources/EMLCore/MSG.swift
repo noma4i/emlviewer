@@ -21,12 +21,14 @@ public enum MSG {
         var subject: String?
         var senderName: String?
         var senderEmail: String?
+        var senderSMTP: [String: String] = [:]
         var displayTo: String?
         var displayCc: String?
         var dates: [String: String] = [:]
         var plainBody: String?
         var htmlBody: String?
         var attachments: [AttachmentDraft] = []
+        var recipients: [(String, Int, String)] = []
 
         for idx in rootChildren {
             let entry = cfb.entries[idx]
@@ -37,6 +39,7 @@ public enum MSG {
                 case "0037": subject     = decodeString(payload, type: type)
                 case "0C1A": senderName  = decodeString(payload, type: type)
                 case "0C1F": senderEmail = decodeString(payload, type: type)
+                case "5D01", "5D02": senderSMTP[tag] = decodeString(payload, type: type)
                 case "0E04": displayTo   = decodeString(payload, type: type)
                 case "0E03": displayCc   = decodeString(payload, type: type)
                 case "0039", "0E06", "3007":
@@ -45,6 +48,11 @@ public enum MSG {
                 case "1013": htmlBody  = decodeHTML(payload, type: type)
                 default: break
                 }
+            } else if entry.type == 1, entry.name.hasPrefix("__recip_version1.0_#"),
+                      entry.name.count == "__recip_version1.0_#".count + 8,
+                      UInt32(entry.name.suffix(8), radix: 16) != nil {
+                let recipient = parseRecipient(cfb: cfb, storageIndex: idx)
+                recipients.append((entry.name, recipient.0, recipient.1))
             } else if entry.type == 1, entry.name.hasPrefix("__attach_version1.0_") {
                 if let att = parseAttachment(cfb: cfb, storageIndex: idx) {
                     attachments.append(att)
@@ -52,12 +60,26 @@ public enum MSG {
             }
         }
 
+        if senderEmail?.contains("@") != true {
+            senderEmail = [senderSMTP["5D01"], senderSMTP["5D02"]].compactMap { $0 }.first { $0.contains("@") }
+        }
+        if !recipients.isEmpty {
+            recipients.sort { $0.0 < $1.0 }
+            func header(_ type: Int) -> String? {
+                let value = recipients.filter { $0.1 == type }.map { $0.2 }.filter { !$0.isEmpty }.joined(separator: ", ")
+                return value.isEmpty ? nil : value
+            }
+            displayTo = header(1)
+            displayCc = header(2)
+        }
+        let displayBcc = recipients.filter { $0.1 == 3 }.map { $0.2 }.filter { !$0.isEmpty }.joined(separator: ", ")
         return synthesizePart(
             subject: subject,
             senderName: senderName,
             senderEmail: senderEmail,
             displayTo: displayTo,
             displayCc: displayCc,
+            displayBcc: displayBcc,
             date: preferredDate(dates),
             plainBody: plainBody,
             htmlBody: htmlBody,
@@ -67,6 +89,37 @@ public enum MSG {
 
     static func preferredDate(_ dates: [String: String]) -> String? {
         dates["0039"] ?? dates["0E06"] ?? dates["3007"]
+    }
+
+    private static func parseRecipient(cfb: CFB, storageIndex: Int) -> (Int, String) {
+        var fields: [String: String] = [:]
+        var recipientType = 0
+        for idx in cfb.children(of: storageIndex) {
+            let entry = cfb.entries[idx]
+            guard entry.type == 2 else { continue }
+            let payload = cfb.read(entry)
+            if entry.name == "__properties_version1.0", payload.count >= 24 {
+                for offset in stride(from: 8, through: payload.count - 16, by: 16) {
+                    let bytes = Array(payload[offset..<(offset + 16)])
+                    if bytes[0] == 3, bytes[1] == 0, bytes[2] == 0x15, bytes[3] == 0x0C {
+                        recipientType = Int(bytes[8]) | Int(bytes[9]) << 8 | Int(bytes[10]) << 16 | Int(bytes[11]) << 24
+                    }
+                }
+            } else if entry.name.hasPrefix("__substg1.0_") {
+                let (tag, type) = tagAndType(entry.name)
+                fields[tag] = decodeString(payload, type: type)
+            }
+        }
+        let name = fields["3001"].flatMap { $0.isEmpty ? nil : $0 }
+        let address = [fields["39FE"], fields["3003"]].compactMap { $0 }.first { $0.contains("@") }
+        let formattedName = name.map { value in
+            let specials = CharacterSet(charactersIn: "()<>@,;:\\\".[]")
+            guard value.rangeOfCharacter(from: specials) != nil else { return value }
+            return "\"" + value.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        }
+        if let formattedName, let address { return (recipientType, "\(formattedName) <\(address)>") }
+        return (recipientType, formattedName ?? address ?? "")
     }
 
     private struct AttachmentDraft {
@@ -179,6 +232,7 @@ public enum MSG {
         senderEmail: String?,
         displayTo: String?,
         displayCc: String?,
+        displayBcc: String,
         date: String?,
         plainBody: String?,
         htmlBody: String?,
@@ -193,6 +247,7 @@ public enum MSG {
         if !from.isEmpty { headers.append(("From", from)) }
         if let displayTo, !displayTo.isEmpty { headers.append(("To", displayTo)) }
         if let displayCc, !displayCc.isEmpty { headers.append(("Cc", displayCc)) }
+        if !displayBcc.isEmpty { headers.append(("Bcc", displayBcc)) }
         if let date, !date.isEmpty { headers.append(("Date", date)) }
 
         let bodyPart = makeBodyPart(plain: plainBody, html: htmlBody)
