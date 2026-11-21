@@ -9,13 +9,13 @@ struct EMLViewerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .environmentObject(state)
                 .frame(minWidth: 520, minHeight: 380)
                 .task {
                     openFromCommandLine()
                 }
         }
-        .handlesExternalEvents(matching: [])
         .defaultSize(width: 900, height: 640)
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unifiedCompact)
