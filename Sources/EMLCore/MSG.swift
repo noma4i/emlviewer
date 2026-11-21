@@ -69,8 +69,8 @@ public enum MSG {
                 let value = recipients.filter { $0.1 == type }.map { $0.2 }.filter { !$0.isEmpty }.joined(separator: ", ")
                 return value.isEmpty ? nil : value
             }
-            displayTo = header(1)
-            displayCc = header(2)
+            displayTo = header(1) ?? displayTo
+            displayCc = header(2) ?? displayCc
         }
         let displayBcc = recipients.filter { $0.1 == 3 }.map { $0.2 }.filter { !$0.isEmpty }.joined(separator: ", ")
         return synthesizePart(
