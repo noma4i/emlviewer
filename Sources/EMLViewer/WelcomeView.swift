@@ -133,7 +133,7 @@ struct WelcomeView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
-            SettingsLink { Image(systemName: "gearshape") }
+            SettingsLink { Image(systemName: "gearshape") }.buttonStyle(.borderless)
                 .help("Settings")
         }
     }

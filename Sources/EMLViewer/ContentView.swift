@@ -106,7 +106,7 @@ struct HeaderPanel: View {
                     .textSelection(.enabled)
                     .lineLimit(3)
                 Spacer()
-                SettingsLink { Image(systemName: "gearshape") }
+                SettingsLink { Image(systemName: "gearshape") }.buttonStyle(.borderless)
                     .help("Settings")
             }
 
