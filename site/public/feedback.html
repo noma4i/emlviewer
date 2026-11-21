@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="EML/MSG Viewer for macOS" />
+    <title>Feedback - EML/MSG Viewer</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="wrap nav">
+      <a class="brand" href="/">
+        <img src="/img/icon.png" alt="" />
+        EML/MSG Viewer
+      </a>
+      <nav class="navlinks" aria-label="Main navigation">
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/feedback">Feedback</a>
+      </nav>
+    </header>
+    <main class="wrap content">
+      <span class="eyebrow">Get in touch</span>
+      <h1>Feedback</h1>
+      <p>Tell us about your experience or a problem with EML/MSG Viewer.</p>
+      <form action="/api/feedback" method="post">
+        <label>
+          Name (optional)
+          <input name="name" autocomplete="name" />
+        </label>
+        <label>
+          Email (optional)
+          <input type="email" name="email" autocomplete="email" />
+        </label>
+        <label>
+          App version
+          <input name="version" />
+        </label>
+        <label class="honeypot" aria-hidden="true">
+          Website
+          <input name="website" tabindex="-1" autocomplete="off" />
+        </label>
+        <label>
+          Message
+          <textarea name="message" required></textarea>
+        </label>
+        <button type="submit">Send feedback</button>
+        <p id="status" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+    <footer class="footer">
+      <div class="wrap">
+        <small>EML/MSG Viewer for macOS</small>
+        <nav class="footerlinks" aria-label="Footer">
+          <a href="/support">Support</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/feedback">Feedback</a>
+        </nav>
+      </div>
+    </footer>
+    <script>
+      const form = document.querySelector("form");
+      const status = document.querySelector("#status");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        status.textContent = "Sending...";
+        try {
+          const response = await fetch(form.action, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.fromEntries(new FormData(form))),
+          });
+          if (!response.ok) throw new Error("Request failed");
+          status.textContent = "Thank you for your feedback.";
+          form.reset();
+        } catch {
+          status.textContent = "Could not send feedback. Please try again.";
+        }
+      });
+    </script>
+  </body>
+</html>
