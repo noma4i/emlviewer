@@ -100,11 +100,17 @@ textarea:focus-visible {
   max-width: 620px;
   margin: 0 auto;
 }
+.store-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 30px;
   background: #000;
   color: white;
   height: 56px;
@@ -130,9 +136,17 @@ textarea:focus-visible {
   margin-bottom: 3px;
 }
 .badge svg {
-  width: 24px;
-  height: 24px;
-  fill: currentColor;
+  width: 30px;
+  height: 30px;
+}
+.badge-github {
+  background: #fff;
+  color: #000;
+  border-color: #1f2328;
+}
+.badge-github svg {
+  width: 28px;
+  height: 28px;
 }
 .section {
   padding: 90px 0;
