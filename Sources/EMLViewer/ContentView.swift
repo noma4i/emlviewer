@@ -40,20 +40,11 @@ struct ContentView: View {
 
 struct WindowAccessor: NSViewRepresentable {
     final class WindowView: NSView {
-        private weak var configuredWindow: NSWindow?
-
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            guard let window, configuredWindow !== window,
-                  window.frameAutosaveName != "EMLViewerMainWindow" else { return }
-            configuredWindow = window
-            let savedFrame = UserDefaults.standard.string(forKey: "NSWindow Frame EMLViewerMainWindow")
-            DispatchQueue.main.async {
-                if let savedFrame {
-                    window.setFrame(from: savedFrame)
-                }
-                window.setFrameAutosaveName("EMLViewerMainWindow")
-            }
+            guard let window, window.frameAutosaveName != "EMLViewerMainWindow" else { return }
+            window.setFrameAutosaveName("EMLViewerMainWindow")
+            window.setFrameUsingName("EMLViewerMainWindow")
         }
     }
 
