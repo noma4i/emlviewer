@@ -190,12 +190,8 @@ def main(out_path: str) -> None:
     def add_binary(parent: StorageNode, tag4: str, payload: bytes) -> None:
         parent.add(StorageNode(f"__substg1.0_{tag4}0102", OBJ_STREAM)).payload = payload
 
-    def add_filetime(parent: StorageNode, tag4: str, value: bytes) -> None:
-        assert len(value) == 8
-        parent.add(StorageNode(f"__substg1.0_{tag4}0040", OBJ_STREAM)).payload = value
-
     add_unicode(root, "0037", "Test Outlook message with attachments")
-    add_unicode(root, "0C1A", "Alice Example")
+    add_unicode(root, "0C1A", "Example, Alice")
     add_unicode(root, "0C1F", "/O=EXAMPLE/CN=ALICE")
     add_unicode(root, "5D01", "alice@example.com")
     add_unicode(root, "0E04", "Bob Example <bob@example.com>")
@@ -213,7 +209,9 @@ def main(out_path: str) -> None:
         add_unicode(recipient, "3003", email)
         if smtp:
             add_unicode(recipient, "39FE", smtp)
-    add_filetime(root, "0039", filetime_now())
+    root.add(StorageNode("__properties_version1.0", OBJ_STREAM)).payload = (
+        bytes(32) + struct.pack("<HHI", 0x0040, 0x0039, 0) + filetime_now()
+    )
     add_unicode(root, "1000",
         "Hi Bob,\r\n\r\n"
         "This is a synthetic Outlook .msg test fixture.\r\n"

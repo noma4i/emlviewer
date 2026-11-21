@@ -61,8 +61,8 @@ final class MSGTests: XCTestCase {
     func testHeadersParsed() throws {
         let msg = try loadSample()
         XCTAssertEqual(msg.subject, "Test Outlook message with attachments")
-        XCTAssertEqual(msg.from, "Alice Example <alice@example.com>")
-        XCTAssertEqual(msg.to, "Bob Example <bob@example.com>, \"Logan, Julia\" <julia@example.com>")
+        XCTAssertEqual(msg.from, "Example, Alice <alice@example.com>")
+        XCTAssertEqual(msg.to, "Bob Example <bob@example.com>, Logan, Julia <julia@example.com>")
         XCTAssertEqual(msg.cc, "Carol Example <carol@example.com>")
     }
 
@@ -79,7 +79,7 @@ final class MSGTests: XCTestCase {
         XCTAssertTrue(part.rawHeaders.contains { $0.0 == "Cc" && $0.1 == "Carol Example <carol@example.com>" })
     }
 
-    func testDateDecodedFromFiletime() throws {
+    func testDateDecodedFromRootProperties() throws {
         let msg = try loadSample()
         XCTAssertEqual(msg.date, "Thu, 16 Apr 2026 14:30:00 +0000")
     }

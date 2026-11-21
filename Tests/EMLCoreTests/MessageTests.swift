@@ -62,6 +62,28 @@ final class MessageTests: XCTestCase {
         XCTAssertEqual(msg.date, "Wed, 25 Mar 2026 04:26:52 +0000")
     }
 
+    func testAddressDisplayNamesLoseQuotesAfterDecoding() {
+        let raw = #"""
+        From: "Gezen, Ahmet" <a@b>
+        To: "Logan, Julia" <j@x>, "Bob" <b@x>
+        Cc: "=?UTF-8?Q?Caf=C3=A9?=" <c@x>
+        Bcc: "A \"quote\" and \\ slash" <d@x>
+        Reply-To: prefix "partial" <r@x>
+        Subject: "subject"
+        Date: "date"
+
+        body
+        """#
+        let msg = Message(data: eml(raw))
+        XCTAssertEqual(msg.from, "Gezen, Ahmet <a@b>")
+        XCTAssertEqual(msg.to, "Logan, Julia <j@x>, Bob <b@x>")
+        XCTAssertEqual(msg.cc, "Café <c@x>")
+        XCTAssertEqual(msg.bcc, #"A "quote" and \ slash <d@x>"#)
+        XCTAssertEqual(msg.replyTo, #"prefix "partial" <r@x>"#)
+        XCTAssertEqual(msg.subject, #""subject""#)
+        XCTAssertEqual(msg.date, #""date""#)
+    }
+
     // MARK: - Bodies
 
     func testPlainBodyReturnedDecoded() {

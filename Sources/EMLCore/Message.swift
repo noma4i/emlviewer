@@ -43,7 +43,43 @@ public struct Message: Sendable {
 
     public func decodedHeader(_ name: String) -> String {
         guard let raw = root.header(name) else { return "" }
-        return Decoding.decodeEncodedWords(raw)
+        let decoded = Decoding.decodeEncodedWords(raw)
+        guard ["from", "to", "cc", "bcc", "reply-to"].contains(name.lowercased()) else { return decoded }
+        return Self.unquoteNames(decoded)
+    }
+
+    private static func unquoteNames(_ header: String) -> String {
+        let chars = Array(header)
+        var output = ""
+        var index = 0
+        var atStart = true
+        while index < chars.count {
+            let char = chars[index]
+            if atStart && char == "\"" {
+                var end = index + 1
+                var name = ""
+                while end < chars.count && chars[end] != "\"" {
+                    if chars[end] == "\\", end + 1 < chars.count,
+                       chars[end + 1] == "\\" || chars[end + 1] == "\"" {
+                        end += 1
+                    }
+                    name.append(chars[end])
+                    end += 1
+                }
+                var next = end + 1
+                while next < chars.count && chars[next].isWhitespace { next += 1 }
+                if end < chars.count && next < chars.count && chars[next] == "<" {
+                    output += name
+                    index = end + 1
+                    atStart = false
+                    continue
+                }
+            }
+            output.append(char)
+            if char == "," { atStart = true } else if !char.isWhitespace { atStart = false }
+            index += 1
+        }
+        return output
     }
 
     // MARK: - Bodies

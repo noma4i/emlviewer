@@ -25,6 +25,7 @@ public enum MSG {
         var displayTo: String?
         var displayCc: String?
         var dates: [String: String] = [:]
+        var fixedDates: [String: String] = [:]
         var plainBody: String?
         var htmlBody: String?
         var attachments: [AttachmentDraft] = []
@@ -32,7 +33,9 @@ public enum MSG {
 
         for idx in rootChildren {
             let entry = cfb.entries[idx]
-            if entry.type == 2, entry.name.hasPrefix("__substg1.0_") {
+            if entry.type == 2, entry.name == "__properties_version1.0" {
+                fixedDates = readDates(cfb.read(entry))
+            } else if entry.type == 2, entry.name.hasPrefix("__substg1.0_") {
                 let (tag, type) = tagAndType(entry.name)
                 let payload = cfb.read(entry)
                 switch tag {
@@ -60,9 +63,8 @@ public enum MSG {
             }
         }
 
-        if senderEmail?.contains("@") != true {
-            senderEmail = [senderSMTP["5D01"], senderSMTP["5D02"]].compactMap { $0 }.first { $0.contains("@") }
-        }
+        senderEmail = [senderEmail, senderSMTP["5D01"], senderSMTP["5D02"]]
+            .compactMap { $0 }.first { $0.contains("@") }
         if !recipients.isEmpty {
             recipients.sort { $0.0 < $1.0 }
             func header(_ type: Int) -> String? {
@@ -80,7 +82,7 @@ public enum MSG {
             displayTo: displayTo,
             displayCc: displayCc,
             displayBcc: displayBcc,
-            date: preferredDate(dates),
+            date: preferredDate(dates.merging(fixedDates) { _, fixed in fixed }),
             plainBody: plainBody,
             htmlBody: htmlBody,
             attachments: attachments
@@ -91,6 +93,28 @@ public enum MSG {
         dates["0039"] ?? dates["0E06"] ?? dates["3007"]
     }
 
+    private static func readProperties(_ data: Data, headerSize: Int) -> [UInt32: Data] {
+        guard data.count >= headerSize + 16 else { return [:] }
+        var properties: [UInt32: Data] = [:]
+        for offset in stride(from: headerSize, through: data.count - 16, by: 16) {
+            let bytes = Array(data[offset..<(offset + 16)])
+            let tag = (0..<4).reduce(UInt32(0)) { $0 | UInt32(bytes[$1]) << ($1 * 8) }
+            properties[tag] = Data(bytes[8..<16])
+        }
+        return properties
+    }
+
+    private static func readDates(_ data: Data) -> [String: String] {
+        let properties = readProperties(data, headerSize: 32)
+        var dates: [String: String] = [:]
+        for (tag, id) in [("0039", 0x0039), ("0E06", 0x0E06), ("3007", 0x3007)] {
+            if let value = properties[UInt32(id) << 16 | 0x0040] {
+                dates[tag] = decodeFiletime(value)
+            }
+        }
+        return dates
+    }
+
     private static func parseRecipient(cfb: CFB, storageIndex: Int) -> (Int, String) {
         var fields: [String: String] = [:]
         var recipientType = 0
@@ -98,12 +122,9 @@ public enum MSG {
             let entry = cfb.entries[idx]
             guard entry.type == 2 else { continue }
             let payload = cfb.read(entry)
-            if entry.name == "__properties_version1.0", payload.count >= 24 {
-                for offset in stride(from: 8, through: payload.count - 16, by: 16) {
-                    let bytes = Array(payload[offset..<(offset + 16)])
-                    if bytes[0] == 3, bytes[1] == 0, bytes[2] == 0x15, bytes[3] == 0x0C {
-                        recipientType = Int(bytes[8]) | Int(bytes[9]) << 8 | Int(bytes[10]) << 16 | Int(bytes[11]) << 24
-                    }
+            if entry.name == "__properties_version1.0" {
+                if let value = readProperties(payload, headerSize: 8)[0x0C150003] {
+                    recipientType = (0..<4).reduce(0) { $0 | Int(value[$1]) << ($1 * 8) }
                 }
             } else if entry.name.hasPrefix("__substg1.0_") {
                 let (tag, type) = tagAndType(entry.name)
@@ -112,14 +133,8 @@ public enum MSG {
         }
         let name = fields["3001"].flatMap { $0.isEmpty ? nil : $0 }
         let address = [fields["39FE"], fields["3003"]].compactMap { $0 }.first { $0.contains("@") }
-        let formattedName = name.map { value in
-            let specials = CharacterSet(charactersIn: "()<>@,;:\\\".[]")
-            guard value.rangeOfCharacter(from: specials) != nil else { return value }
-            return "\"" + value.replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "\"", with: "\\\"") + "\""
-        }
-        if let formattedName, let address { return (recipientType, "\(formattedName) <\(address)>") }
-        return (recipientType, formattedName ?? address ?? "")
+        if let name, let address { return (recipientType, "\(name) <\(address)>") }
+        return (recipientType, name ?? address ?? "")
     }
 
     private struct AttachmentDraft {
