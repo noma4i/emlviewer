@@ -18,13 +18,20 @@ struct SettingsView: View {
                     Text(mode.label).tag(mode)
                 }
             }
-            Stepper("Message text size: \(Int(fontSize)) pt", value: $fontSize, in: 10...24, step: 1)
+            .pickerStyle(.segmented)
+            Picker("Message text size", selection: $fontSize) {
+                ForEach([10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24], id: \.self) { size in
+                    Text("\(size) pt").tag(Double(size))
+                }
+            }
+            .pickerStyle(.menu)
             Picker("Plain text font", selection: $plainFont) {
                 Text("Monospaced").tag("monospaced")
                 Text("Proportional").tag("proportional")
             }
+            .pickerStyle(.segmented)
         }
-        .padding(20)
-        .frame(width: 420)
+        .formStyle(.grouped)
+        .frame(width: 460)
     }
 }
