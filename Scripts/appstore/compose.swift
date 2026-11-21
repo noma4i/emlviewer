@@ -16,6 +16,7 @@ let frames: [(String, String, String, String, Bool)] = [
 let size = NSSize(width: 2880, height: 1800)
 let cs = CGColorSpace(name: CGColorSpace.sRGB)!
 for (name, source, title, subtitle, dark) in frames {
+    if CommandLine.arguments.count > 1 && CommandLine.arguments[1] != name { continue }
     let context = CGContext(data: nil, width: 2880, height: 1800, bitsPerComponent: 8, bytesPerRow: 2880 * 4, space: cs, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
@@ -43,9 +44,15 @@ for (name, source, title, subtitle, dark) in frames {
     if name == "05-settings" {
         let settings = NSImage(contentsOf: raw.appendingPathComponent("settings.png"))!
         let crop = NSRect(x: 0, y: settings.size.height * 0.58, width: settings.size.width, height: settings.size.height * 0.42)
-        let overlay = NSRect(x: 1430, y: 360, width: settings.size.width * 1.7, height: crop.height * 1.7)
+        let overlay = NSRect(x: (2880 - settings.size.width * 1.7) / 2, y: 360, width: settings.size.width * 1.7, height: crop.height * 1.7)
+        let mask = NSBezierPath(roundedRect: overlay, xRadius: 12 * 1.7, yRadius: 12 * 1.7)
         context.saveGState()
-        context.setShadow(offset: CGSize(width: 0, height: -16), blur: 48, color: NSColor.black.withAlphaComponent(0.35).cgColor)
+        context.setShadow(offset: CGSize(width: 0, height: -18), blur: 55, color: NSColor.black.withAlphaComponent(0.25).cgColor)
+        NSColor.white.setFill()
+        mask.fill()
+        context.restoreGState()
+        context.saveGState()
+        mask.addClip()
         settings.draw(in: overlay, from: crop, operation: .sourceOver, fraction: 1)
         context.restoreGState()
     }
