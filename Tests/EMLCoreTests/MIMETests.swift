@@ -3,6 +3,22 @@ import XCTest
 
 final class MIMETests: XCTestCase {
 
+    func testEarliestHeaderSeparator() {
+        for raw in ["Subject: hi\n\nbody\r\n\r\ntail", "Subject: hi\r\n\r\nbody\n\ntail"] {
+            let part = MIME.parse(Data(raw.utf8))
+            XCTAssertEqual(part.header("Subject"), "hi")
+            XCTAssertTrue(part.decodedText().hasPrefix("body"))
+            XCTAssertTrue(part.decodedText().hasSuffix("tail"))
+        }
+    }
+
+    func testHeaderDecodingUTF8AndLatin1() {
+        let utf8 = MIME.parse(Data("Subject: Caf\u{00E9}\n\nbody".utf8))
+        let latin1 = MIME.parse(Data([83, 117, 98, 106, 101, 99, 116, 58, 32, 67, 97, 102, 233, 10, 10]))
+        XCTAssertEqual(utf8.header("Subject"), "Caf\u{00E9}")
+        XCTAssertEqual(latin1.header("Subject"), "Caf\u{00E9}")
+    }
+
     // MARK: - parseStructuredHeader
 
     func testStructuredHeaderSimple() {

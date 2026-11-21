@@ -1,6 +1,7 @@
 import Foundation
 
 public enum Decoding {
+    private static let encodedWordPattern = try? NSRegularExpression(pattern: #"=\?([^?\s]+)\?([BbQq])\?([^?\s]*)\?="#)
 
     // MARK: - Quoted-Printable
 
@@ -49,10 +50,11 @@ public enum Decoding {
             return (c >= 0x30 && c <= 0x39) || // 0-9
                    (c >= 0x41 && c <= 0x5A) || // A-Z
                    (c >= 0x61 && c <= 0x7A) || // a-z
-                   c == 0x2B || c == 0x2F || c == 0x3D // + / =
+                   c == 0x2B || c == 0x2F
         }
         let str = String(String.UnicodeScalarView(cleaned))
-        return Data(base64Encoded: str, options: .ignoreUnknownCharacters) ?? Data()
+        let padded = str + String(repeating: "=", count: (4 - str.utf8.count % 4) % 4)
+        return Data(base64Encoded: padded) ?? Data()
     }
 
     // MARK: - Charset → String
@@ -93,10 +95,9 @@ public enum Decoding {
     // MARK: - RFC 2047 encoded-word
 
     public static func decodeEncodedWords(_ s: String) -> String {
-        let pattern = #"=\?([^?\s]+)\?([BbQq])\?([^?\s]*)\?="#
-        guard let re = try? NSRegularExpression(pattern: pattern) else { return s }
+        guard let encodedWordPattern else { return s }
         let ns = s as NSString
-        let matches = re.matches(in: s, range: NSRange(location: 0, length: ns.length))
+        let matches = encodedWordPattern.matches(in: s, range: NSRange(location: 0, length: ns.length))
         if matches.isEmpty { return s }
 
         var result = ""

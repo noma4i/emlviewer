@@ -37,6 +37,12 @@ final class DecodingTests: XCTestCase {
 
     // MARK: - Base64
 
+    func testBase64UnpaddedAndConcatenated() {
+        for input in ["YWJjZA", "YWJj=ZA=="] {
+            XCTAssertEqual(Decoding.base64(input), Data("abcd".utf8))
+        }
+    }
+
     func testBase64Basic() {
         let data = Decoding.base64("aGVsbG8=")
         XCTAssertEqual(String(data: data, encoding: .utf8), "hello")

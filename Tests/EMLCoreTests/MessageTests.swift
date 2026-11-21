@@ -105,6 +105,15 @@ final class MessageTests: XCTestCase {
         XCTAssertNotNil(msg.partByContentID("<logo@ex>"))
     }
 
+    func testPartByContentIDUsesFirstMatchAndTrimsWhitespace() {
+        let raw = "Content-Type: multipart/mixed; boundary=x\n\n" +
+            "--x\nContent-ID: <same>\n\nfirst\n" +
+            "--x\nContent-ID: <same>\n\nsecond\n--x--\n"
+        let msg = Message(data: Data(raw.utf8))
+        XCTAssertEqual(msg.partByContentID(" \t<same>\r\n")?.decodedText(), "first")
+        XCTAssertNil(msg.partByContentID("missing"))
+    }
+
     // MARK: - Edge cases
 
     func testMessageWithoutHtmlFallsBackToPlain() {

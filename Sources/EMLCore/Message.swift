@@ -1,14 +1,29 @@
 import Foundation
 
-public struct Message {
+public struct Message: Sendable {
     public let root: Part
+    public let htmlBody: String?
+    public let plainBody: String?
+    public let attachments: [Part]
+    public let inlineParts: [Part]
+    private let contentIDIndex: [String: Part]
 
     public init(data: Data) {
-        if MSG.isMSG(data), let part = MSG.parse(data) {
-            self.root = part
-        } else {
-            self.root = MIME.parse(data)
+        let root = MSG.isMSG(data) ? (MSG.parse(data) ?? MIME.parse(data)) : MIME.parse(data)
+        self.root = root
+        self.htmlBody = Self.findBody(root, contentType: "text/html")?.decodedText()
+        self.plainBody = Self.findBody(root, contentType: "text/plain")?.decodedText()
+        var attachments: [Part] = []
+        var inlineParts: [Part] = []
+        var contentIDIndex: [String: Part] = [:]
+        Self.collectAttachments(root, into: &attachments)
+        Self.collectInlines(root, into: &inlineParts)
+        Self.walk(root) { part in
+            if let id = part.contentID, contentIDIndex[id] == nil { contentIDIndex[id] = part }
         }
+        self.attachments = attachments
+        self.inlineParts = inlineParts
+        self.contentIDIndex = contentIDIndex
     }
 
     public init(url: URL) throws {
@@ -33,21 +48,11 @@ public struct Message {
 
     // MARK: - Bodies
 
-    public var htmlBody: String? {
-        guard let part = findBodyPart(contentType: "text/html") else { return nil }
-        return part.decodedText()
-    }
-
-    public var plainBody: String? {
-        guard let part = findBodyPart(contentType: "text/plain") else { return nil }
-        return part.decodedText()
-    }
-
     public func findBodyPart(contentType: String) -> Part? {
-        findBody(root, contentType: contentType)
+        Self.findBody(root, contentType: contentType)
     }
 
-    private func findBody(_ part: Part, contentType: String) -> Part? {
+    private static func findBody(_ part: Part, contentType: String) -> Part? {
         if !part.isMultipart,
            part.contentType == contentType,
            part.disposition?.lowercased() != "attachment" {
@@ -61,19 +66,7 @@ public struct Message {
 
     // MARK: - Attachments / inlines
 
-    public var attachments: [Part] {
-        var out: [Part] = []
-        collectAttachments(root, into: &out)
-        return out
-    }
-
-    public var inlineParts: [Part] {
-        var out: [Part] = []
-        collectInlines(root, into: &out)
-        return out
-    }
-
-    private func collectAttachments(_ part: Part, into: inout [Part]) {
+    private static func collectAttachments(_ part: Part, into: inout [Part]) {
         if !part.isMultipart {
             let disp = part.disposition?.lowercased()
             let isExplicitAttachment = disp == "attachment"
@@ -87,7 +80,7 @@ public struct Message {
         for sub in part.parts { collectAttachments(sub, into: &into) }
     }
 
-    private func collectInlines(_ part: Part, into: inout [Part]) {
+    private static func collectInlines(_ part: Part, into: inout [Part]) {
         if !part.isMultipart, part.contentID != nil {
             let disp = part.disposition?.lowercased()
             let isTextBody = part.contentType == "text/plain" || part.contentType == "text/html"
@@ -102,16 +95,10 @@ public struct Message {
 
     public func partByContentID(_ cid: String) -> Part? {
         let clean = cid.trimmingCharacters(in: CharacterSet(charactersIn: "<> \t\r\n"))
-        var found: Part?
-        walk(root) { p in
-            if found == nil, let id = p.contentID, id == clean {
-                found = p
-            }
-        }
-        return found
+        return contentIDIndex[clean]
     }
 
-    private func walk(_ part: Part, _ visit: (Part) -> Void) {
+    private static func walk(_ part: Part, _ visit: (Part) -> Void) {
         visit(part)
         for sub in part.parts { walk(sub, visit) }
     }

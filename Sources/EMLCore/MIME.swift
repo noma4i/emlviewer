@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Part {
+public struct Part: Sendable {
     public var rawHeaders: [(String, String)] = []
     public var body: Data = Data()
     public var parts: [Part] = []
@@ -83,11 +83,9 @@ public enum MIME {
     // MARK: - Header parsing
 
     private static func splitHeadersBody(_ data: Data) -> (Data, Data) {
-        if let r = range(of: [0x0D, 0x0A, 0x0D, 0x0A], in: data) {
-            return (data.subdata(in: data.startIndex..<r.lowerBound),
-                    data.subdata(in: r.upperBound..<data.endIndex))
-        }
-        if let r = range(of: [0x0A, 0x0A], in: data) {
+        let ranges = [data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])),
+                      data.range(of: Data([0x0A, 0x0A]))].compactMap { $0 }
+        if let r = ranges.min(by: { $0.lowerBound < $1.lowerBound }) {
             return (data.subdata(in: data.startIndex..<r.lowerBound),
                     data.subdata(in: r.upperBound..<data.endIndex))
         }
@@ -95,7 +93,9 @@ public enum MIME {
     }
 
     private static func parseHeaders(_ data: Data) -> [(String, String)] {
-        guard let raw = String(data: data, encoding: .isoLatin1) else { return [] }
+        guard let raw = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+            return []
+        }
         let rawLines = raw.components(separatedBy: .newlines).filter { !$0.isEmpty }
 
         var unfolded: [String] = []
@@ -268,21 +268,5 @@ public enum MIME {
             }
         }
         return parts
-    }
-
-    private static func range(of needle: [UInt8], in data: Data) -> Range<Int>? {
-        guard !needle.isEmpty, needle.count <= data.count else { return nil }
-        let base = data.startIndex
-        let limit = data.count - needle.count
-        for i in 0...limit {
-            var match = true
-            for j in 0..<needle.count {
-                if data[base + i + j] != needle[j] { match = false; break }
-            }
-            if match {
-                return (base + i)..<(base + i + needle.count)
-            }
-        }
-        return nil
     }
 }
