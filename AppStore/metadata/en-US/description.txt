@@ -1,0 +1,7 @@
+Open .eml and Outlook .msg files on your Mac. EML/MSG Viewer displays decoded message headers and HTML messages with inline images. When a message has no HTML body, it shows the plain text instead.
+
+Open attachments from the attachments bar, or use Save All to save them to a folder you choose.
+
+Choose light, dark, or system appearance, and adjust the font family and size. You can also set the app as the default viewer for .eml and .msg files.
+
+The app is sandboxed. No account is required, and the app collects no data.

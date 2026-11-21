@@ -1,0 +1,1 @@
+Open any .eml or Outlook .msg file to view a message. If the message has attachments, use the attachments bar to open one or choose Save All to save them to a folder. Sample files can be attached by the owner for review. No account is required.

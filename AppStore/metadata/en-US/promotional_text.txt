@@ -1,0 +1,1 @@
+Read EML and Outlook MSG files, view attachments, and choose your preferred appearance and font.

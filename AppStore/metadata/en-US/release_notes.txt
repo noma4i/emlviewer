@@ -1,0 +1,1 @@
+Version 1.0: Open EML and Outlook MSG files, read messages, and save attachments.
