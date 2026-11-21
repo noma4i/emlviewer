@@ -1,12 +1,10 @@
 import SwiftUI
-import SwiftData
 import AppKit
 import UniformTypeIdentifiers
 
 struct WelcomeView: View {
     @EnvironmentObject var state: AppState
-    @Environment(\.modelContext) private var modelContext
-    @Query private var prefsList: [AppPreferences]
+    @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
 
     @State private var isDefault: Bool = false
     @State private var assocStatus: String?
@@ -101,7 +99,7 @@ struct WelcomeView: View {
             Text("Appearance")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            Picker("", selection: appearanceBinding) {
+            Picker("", selection: $appearance) {
                 ForEach(AppearanceMode.allCases) { mode in
                     Text(mode.label).tag(mode)
                 }
@@ -162,24 +160,6 @@ struct WelcomeView: View {
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    }
-
-    private var appearanceBinding: Binding<AppearanceMode> {
-        Binding(
-            get: { prefsList.first?.appearance ?? .system },
-            set: { newValue in
-                let prefs: AppPreferences
-                if let existing = prefsList.first {
-                    prefs = existing
-                } else {
-                    prefs = AppPreferences()
-                    modelContext.insert(prefs)
-                }
-                prefs.appearance = newValue
-                try? modelContext.save()
-                newValue.save()
-            }
-        )
     }
 
     private func refreshAssociation() {

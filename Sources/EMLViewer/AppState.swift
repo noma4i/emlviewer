@@ -4,6 +4,18 @@ import AppKit
 import UniformTypeIdentifiers
 import EMLCore
 
+struct AttachmentItem: Identifiable, Sendable {
+    let id: Int
+    let part: Part
+    let sizeText: String
+}
+
+struct LoadedMessage: Identifiable, Sendable {
+    let id: UUID
+    let message: Message
+    let attachments: [AttachmentItem]
+}
+
 @MainActor
 final class AppState: ObservableObject {
     static let shared = AppState()
@@ -12,26 +24,43 @@ final class AppState: ObservableObject {
         UTType(filenameExtension: "msg") ?? UTType("com.microsoft.outlook-email-message"),
     ].compactMap { $0 }
 
-    @Published var message: Message?
+    @Published var message: LoadedMessage?
     @Published var sourceURL: URL?
     @Published var errorText: String?
     @Published var toast: String?
     private var toastTask: Task<Void, Never>?
+    private var openID = UUID()
 
     private init() {}
 
     // MARK: - Loading
 
     func open(_ url: URL) {
-        do {
-            let msg = try Message(url: url)
-            self.message = msg
-            self.sourceURL = url
-            self.errorText = nil
-        } catch {
-            self.errorText = "Failed to open: \(error.localizedDescription)"
-            self.message = nil
-            self.sourceURL = url
+        let id = UUID()
+        openID = id
+        Task {
+            let result = await Task.detached {
+                Result {
+                    let message = try Message(url: url)
+                    let formatter = ByteCountFormatter()
+                    formatter.countStyle = .file
+                    let attachments = message.attachments.enumerated().map { index, part in
+                        AttachmentItem(id: index, part: part,
+                                       sizeText: formatter.string(fromByteCount: Int64(part.decodedBody().count)))
+                    }
+                    return LoadedMessage(id: id, message: message, attachments: attachments)
+                }
+            }.value
+            guard openID == id else { return }
+            sourceURL = url
+            switch result {
+            case .success(let loaded):
+                message = loaded
+                errorText = nil
+            case .failure(let error):
+                errorText = "Failed to open: \(error.localizedDescription)"
+                message = nil
+            }
         }
     }
 

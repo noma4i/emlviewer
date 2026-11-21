@@ -4,7 +4,7 @@ import EMLCore
 
 struct WebView: NSViewRepresentable {
     let html: String
-    let message: Message
+    let message: LoadedMessage
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -21,12 +21,10 @@ struct WebView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
-        context.coordinator.handler?.message = message
-
-        let key = html.hashValue
-        if context.coordinator.loadedHash != key {
+        if context.coordinator.loadedID != message.id {
+            context.coordinator.handler?.message = message.message
             view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
-            context.coordinator.loadedHash = key
+            context.coordinator.loadedID = message.id
         }
     }
 
@@ -43,7 +41,7 @@ struct WebView: NSViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         var handler: CIDSchemeHandler?
-        var loadedHash: Int = 0
+        var loadedID: UUID?
 
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,

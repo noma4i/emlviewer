@@ -1,16 +1,11 @@
 import SwiftUI
-import SwiftData
 import AppKit
 import UniformTypeIdentifiers
 import EMLCore
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
-    @Environment(\.modelContext) private var modelContext
-    @Query private var prefsList: [AppPreferences]
-    @StateObject private var tracker = WindowTracker()
-
-    private var prefs: AppPreferences? { prefsList.first }
+    @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
 
     var body: some View {
         ZStack {
@@ -22,24 +17,13 @@ struct ContentView: View {
             ToastOverlay()
         }
         .background(Color(nsColor: .textBackgroundColor))
-        .background(WindowAccessor { window in
-            bindWindow(window)
-        })
-        .task {
-            ensurePrefsExist()
-            applyAppearance(prefs?.appearance ?? .system)
-        }
-        .onChange(of: prefs?.appearanceRaw) { _, _ in
-            applyAppearance(prefs?.appearance ?? .system)
+        .background(WindowAccessor())
+        .onChange(of: appearance) { _, mode in
+            mode.applyToApp()
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers)
         }
-    }
-
-    private func applyAppearance(_ mode: AppearanceMode) {
-        mode.applyToApp()
-        mode.save()
     }
 
     // MARK: - Drop
@@ -52,87 +36,21 @@ struct ContentView: View {
         }
         return true
     }
-
-    // MARK: - Preferences
-
-    private func ensurePrefsExist() {
-        if prefsList.isEmpty {
-            modelContext.insert(AppPreferences())
-            try? modelContext.save()
-        }
-    }
-
-    private func bindWindow(_ window: NSWindow) {
-        if let p = prefs {
-            var frame = window.frame
-            frame.size = NSSize(width: p.windowWidth, height: p.windowHeight)
-            window.setFrame(frame, display: true, animate: false)
-        }
-        tracker.onResize = { newFrame in
-            let p: AppPreferences
-            if let existing = prefsList.first {
-                p = existing
-            } else {
-                p = AppPreferences()
-                modelContext.insert(p)
-            }
-            p.windowWidth = newFrame.width
-            p.windowHeight = newFrame.height
-            try? modelContext.save()
-        }
-        tracker.attach(window)
-    }
-}
-
-// MARK: - Window tracking
-
-@MainActor
-final class WindowTracker: ObservableObject {
-    weak var window: NSWindow?
-    var onResize: (NSRect) -> Void = { _ in }
-    private var observer: NSObjectProtocol?
-
-    func attach(_ window: NSWindow) {
-        guard self.window !== window else { return }
-        self.window = window
-        if let existing = observer {
-            NotificationCenter.default.removeObserver(existing)
-        }
-        observer = NotificationCenter.default.addObserver(
-            forName: NSWindow.didResizeNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] note in
-            guard let window = note.object as? NSWindow else { return }
-            MainActor.assumeIsolated {
-                self?.onResize(window.frame)
-            }
-        }
-    }
-
-    deinit {
-        if let observer = observer {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
 }
 
 struct WindowAccessor: NSViewRepresentable {
-    let onWindow: @MainActor (NSWindow) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        Task { @MainActor in
-            if let w = view.window { onWindow(w) }
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        Task { @MainActor in
-            if let w = nsView.window { onWindow(w) }
+    final class WindowView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window, window.frameAutosaveName != "EMLViewerMainWindow" else { return }
+            window.setFrameAutosaveName("EMLViewerMainWindow")
+            window.setFrameUsingName("EMLViewerMainWindow")
         }
     }
+
+    func makeNSView(context: Context) -> WindowView { WindowView() }
+
+    func updateNSView(_ nsView: WindowView, context: Context) {}
 }
 
 // MARK: - Toast
@@ -162,11 +80,11 @@ struct ToastOverlay: View {
 // MARK: - Message
 
 struct MessageView: View {
-    let message: Message
+    let message: LoadedMessage
 
     var body: some View {
         VStack(spacing: 0) {
-            HeaderPanel(message: message)
+            HeaderPanel(message: message.message)
             Divider().opacity(0.6)
             BodyView(message: message)
             if !message.attachments.isEmpty {
@@ -215,13 +133,13 @@ struct HeaderPanel: View {
 }
 
 struct BodyView: View {
-    let message: Message
+    let message: LoadedMessage
 
     var body: some View {
         Group {
-            if let html = message.htmlBody {
+            if let html = message.message.htmlBody {
                 WebView(html: html, message: message)
-            } else if let plain = message.plainBody {
+            } else if let plain = message.message.plainBody {
                 ScrollView {
                     Text(plain)
                         .textSelection(.enabled)
@@ -241,7 +159,7 @@ struct BodyView: View {
 // MARK: - Attachments
 
 struct AttachmentsBar: View {
-    let attachments: [Part]
+    let attachments: [AttachmentItem]
     @EnvironmentObject var state: AppState
 
     var body: some View {
@@ -250,7 +168,7 @@ struct AttachmentsBar: View {
                 Text("\(attachments.count) attachment\(attachments.count == 1 ? "" : "s")")
                 Spacer()
                 Button {
-                    state.downloadAll(attachments)
+                    state.downloadAll(attachments.map(\.part))
                 } label: {
                     Label("Download All", systemImage: "arrow.down.circle")
                 }
@@ -265,8 +183,8 @@ struct AttachmentsBar: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(Array(attachments.enumerated()), id: \.offset) { _, a in
-                        AttachmentChip(part: a)
+                    ForEach(attachments) { item in
+                        AttachmentChip(item: item)
                     }
                 }
                 .padding(.horizontal, 14)
@@ -279,9 +197,10 @@ struct AttachmentsBar: View {
 }
 
 struct AttachmentChip: View {
-    let part: Part
+    let item: AttachmentItem
     @EnvironmentObject var state: AppState
     @State private var hovered = false
+    private var part: Part { item.part }
 
     var body: some View {
         Button(action: { state.openAttachment(part) }) {
@@ -295,7 +214,7 @@ struct AttachmentChip: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .frame(maxWidth: 220, alignment: .leading)
-                    Text(sizeString)
+                    Text(item.sizeText)
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -322,28 +241,17 @@ struct AttachmentChip: View {
         }
         .help("Open \(part.filename ?? "attachment")")
     }
-
-    private var sizeString: String {
-        let f = ByteCountFormatter()
-        f.countStyle = .file
-        return f.string(fromByteCount: Int64(part.decodedBody().count))
-    }
 }
 
 // MARK: - System file icon
 
-struct FileIcon: NSViewRepresentable {
+struct FileIcon: View {
     let part: Part
 
-    func makeNSView(context: Context) -> NSImageView {
-        let v = NSImageView()
-        v.imageScaling = .scaleProportionallyUpOrDown
-        v.image = icon()
-        return v
-    }
-
-    func updateNSView(_ nsView: NSImageView, context: Context) {
-        nsView.image = icon()
+    var body: some View {
+        Image(nsImage: icon())
+            .resizable()
+            .scaledToFit()
     }
 
     private func icon() -> NSImage {

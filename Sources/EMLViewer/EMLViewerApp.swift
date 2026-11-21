@@ -1,21 +1,10 @@
 import SwiftUI
-import SwiftData
 import AppKit
 
 @main
 struct EMLViewerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var state = AppState.shared
-
-    private let modelContainer: ModelContainer = {
-        let schema = Schema([AppPreferences.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-    }()
 
     var body: some Scene {
         WindowGroup {
@@ -26,7 +15,7 @@ struct EMLViewerApp: App {
                     openFromCommandLine()
                 }
         }
-        .modelContainer(modelContainer)
+        .defaultSize(width: 900, height: 640)
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unifiedCompact)
         .commands {
