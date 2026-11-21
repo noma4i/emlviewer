@@ -164,17 +164,6 @@ struct WelcomeView: View {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
 
-    private var supportedTypes: [UTType] {
-        var types: [UTType] = []
-        if let t = UTType(filenameExtension: "eml") ?? UTType("public.email-message") {
-            types.append(t)
-        }
-        if let t = UTType(filenameExtension: "msg") ?? UTType("com.microsoft.outlook-email-message") {
-            types.append(t)
-        }
-        return types
-    }
-
     private var appearanceBinding: Binding<AppearanceMode> {
         Binding(
             get: { prefsList.first?.appearance ?? .system },
@@ -195,7 +184,7 @@ struct WelcomeView: View {
 
     private func refreshAssociation() {
         guard let bundleID = Bundle.main.bundleIdentifier else { isDefault = false; return }
-        let types = supportedTypes
+        let types = AppState.supportedTypes
         guard !types.isEmpty else { isDefault = false; return }
 
         for type in types {
@@ -210,7 +199,7 @@ struct WelcomeView: View {
     }
 
     private func setAsDefault() {
-        let types = supportedTypes
+        let types = AppState.supportedTypes
         guard !types.isEmpty else {
             assocStatus = "UTType lookup failed"
             return

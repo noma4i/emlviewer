@@ -152,13 +152,6 @@ struct ToastOverlay: View {
                     .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
                     .padding(.bottom, 24)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                if state.toast == text { state.toast = nil }
-                            }
-                        }
-                    }
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: state.toast)

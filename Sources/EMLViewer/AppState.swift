@@ -7,11 +7,16 @@ import EMLCore
 @MainActor
 final class AppState: ObservableObject {
     static let shared = AppState()
+    static let supportedTypes: [UTType] = [
+        UTType(filenameExtension: "eml") ?? UTType("public.email-message"),
+        UTType(filenameExtension: "msg") ?? UTType("com.microsoft.outlook-email-message"),
+    ].compactMap { $0 }
 
     @Published var message: Message?
     @Published var sourceURL: URL?
     @Published var errorText: String?
     @Published var toast: String?
+    private var toastTask: Task<Void, Never>?
 
     private init() {}
 
@@ -34,9 +39,7 @@ final class AppState: ObservableObject {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        if let eml = UTType(filenameExtension: "eml") {
-            panel.allowedContentTypes = [eml]
-        }
+        panel.allowedContentTypes = Self.supportedTypes
         if panel.runModal() == .OK, let url = panel.url {
             open(url)
         }
@@ -53,9 +56,14 @@ final class AppState: ObservableObject {
 
     func saveAsAttachment(_ part: Part) {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = part.filename ?? "attachment"
+        let name = sanitizedFilename(part.filename ?? "attachment")
+        panel.nameFieldStringValue = name
         if panel.runModal() == .OK, let url = panel.url {
-            try? part.decodedBody().write(to: url)
+            do {
+                try part.decodedBody().write(to: url)
+            } catch {
+                showToast("Could not save \(name): \(error.localizedDescription)")
+            }
         }
     }
 
@@ -63,22 +71,37 @@ final class AppState: ObservableObject {
         guard !attachments.isEmpty else { return }
         let dir = downloadsDirectory()
         var saved: [URL] = []
+        var failure: String?
 
         for part in attachments {
-            let base = part.filename ?? "attachment"
+            let base = sanitizedFilename(part.filename ?? "attachment")
             let target = uniqueURL(in: dir, filename: base)
             do {
                 try part.decodedBody().write(to: target, options: .atomic)
                 saved.append(target)
             } catch {
-                continue
+                failure = "Could not save \(base): \(error.localizedDescription)"
             }
         }
 
         if !saved.isEmpty {
             NSWorkspace.shared.activateFileViewerSelecting(saved)
             let n = saved.count
-            toast = "Saved \(n) file\(n == 1 ? "" : "s") to Downloads"
+            if failure == nil {
+                showToast("Saved \(n) file\(n == 1 ? "" : "s") to Downloads")
+            }
+        }
+        if let failure { showToast(failure) }
+    }
+
+    func showToast(_ text: String) {
+        toastTask?.cancel()
+        toast = text
+        toastTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 2_500_000_000)
+                withAnimation(.easeOut(duration: 0.25)) { toast = nil }
+            } catch { return }
         }
     }
 
@@ -106,6 +129,7 @@ final class AppState: ObservableObject {
     }
 
     private func uniqueURL(in dir: URL, filename: String) -> URL {
+        let filename = sanitizedFilename(filename)
         var candidate = dir.appendingPathComponent(filename)
         guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
 
@@ -119,5 +143,14 @@ final class AppState: ObservableObject {
             i += 1
         }
         return candidate
+    }
+
+    private func sanitizedFilename(_ filename: String) -> String {
+        let component = (filename as NSString).lastPathComponent
+        let replaced = String(component.unicodeScalars.map {
+            CharacterSet.controlCharacters.contains($0) || $0 == "/" || $0 == ":" ? "_" : Character($0)
+        })
+        let name = String(replaced.drop(while: { $0 == "." || $0.isWhitespace }))
+        return name.isEmpty ? "attachment" : name
     }
 }
