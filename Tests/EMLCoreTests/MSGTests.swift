@@ -3,18 +3,53 @@ import XCTest
 
 final class MSGTests: XCTestCase {
 
-    private func loadSample() throws -> Message {
+    private func sampleURL() throws -> URL {
 #if SWIFT_PACKAGE
         let bundle = Bundle.module
 #else
         let bundle = Bundle(for: MSGTests.self)
 #endif
-        let url = try XCTUnwrap(
+        return try XCTUnwrap(
             bundle.url(forResource: "sample", withExtension: "msg", subdirectory: "Fixtures")
                 ?? bundle.url(forResource: "sample", withExtension: "msg"),
             "sample.msg fixture must be bundled with tests"
         )
-        return try Message(url: url)
+    }
+
+    private func loadSample() throws -> Message {
+        try Message(url: sampleURL())
+    }
+
+    func testRejectsInvalidSectorShifts() throws {
+        let sample = try Data(contentsOf: sampleURL())
+        for (offset, value) in [(30, UInt8(40)), (32, UInt8(7))] {
+            var data = sample
+            data[offset] = value
+            XCTAssertNil(MSG.parse(data))
+        }
+    }
+
+    func testTruncatedSampleDoesNotCrash() throws {
+        let data = try Data(contentsOf: sampleURL())
+        XCTAssertNil(MSG.parse(Data(data.prefix(1024))))
+    }
+
+    func testReadsFATFromCyclicDIFATChain() throws {
+        var data = try Data(contentsOf: sampleURL())
+        let sectorSize = 512
+        let difatSector = UInt32(data.count / sectorSize - 1)
+        let fatSector = data[76..<80]
+        data.replaceSubrange(76..<80, with: [UInt8](repeating: 0xFF, count: 4))
+        func bytes(_ value: UInt32) -> [UInt8] {
+            (0..<4).map { UInt8(truncatingIfNeeded: value >> ($0 * 8)) }
+        }
+        data.replaceSubrange(68..<72, with: bytes(difatSector))
+        data.replaceSubrange(72..<76, with: bytes(2))
+        data.append(contentsOf: fatSector)
+        data.append(contentsOf: [UInt8](repeating: 0xFF, count: sectorSize - 8))
+        data.append(contentsOf: bytes(difatSector))
+        let part = try XCTUnwrap(MSG.parse(data))
+        XCTAssertTrue(part.rawHeaders.contains { $0.0 == "Subject" && $0.1 == "Test Outlook message with attachments" })
     }
 
     func testDetectsCFBMagic() {

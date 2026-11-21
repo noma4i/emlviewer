@@ -315,6 +315,7 @@ struct CFB {
 
         let sectorShift: UInt16     = CFB.readU16(data, at: 30)
         let miniSectorShift: UInt16 = CFB.readU16(data, at: 32)
+        guard [9, 12].contains(sectorShift), miniSectorShift == 6 else { return nil }
         self.sectorSize     = 1 << Int(sectorShift)
         self.miniSectorSize = 1 << Int(miniSectorShift)
         self.miniCutoff     = CFB.readU32(data, at: 56)
@@ -325,6 +326,18 @@ struct CFB {
         var difat: [UInt32] = []
         for i in 0..<109 {
             difat.append(CFB.readU32(data, at: 76 + i * 4))
+        }
+        var difatSector = CFB.readU32(data, at: 68)
+        let difatCount = CFB.readU32(data, at: 72)
+        var visited = Set<UInt32>()
+        for _ in 0..<difatCount {
+            guard difatSector < 0xFFFFFFF0, visited.insert(difatSector).inserted,
+                  let offset = CFB.sectorOffset(difatSector, sectorSize: sectorSize),
+                  offset <= data.count, sectorSize <= data.count - offset else { break }
+            for i in 0..<(sectorSize / 4 - 1) {
+                difat.append(CFB.readU32(data, at: offset + i * 4))
+            }
+            difatSector = CFB.readU32(data, at: offset + sectorSize - 4)
         }
 
         let fat = CFB.readFAT(data: data, sectorSize: sectorSize, difat: difat)
@@ -356,14 +369,14 @@ struct CFB {
                 startSector: entry.startSector,
                 miniSectorSize: miniSectorSize,
                 miniStream: miniStreamData
-            ).prefix(Int(entry.size))
+            ).prefix(Int(clamping: entry.size))
         }
         return CFB.readChain(
             fat: fatChain,
             startSector: entry.startSector,
             sectorSize: sectorSize,
             data: data
-        ).prefix(Int(entry.size))
+        ).prefix(Int(clamping: entry.size))
     }
 
     /// All directory indices that are descendants of the given storage (via child/left/right tree).
@@ -406,17 +419,17 @@ struct CFB {
         return lo | (hi << 32)
     }
 
-    private static func sectorOffset(_ sector: UInt32, sectorSize: Int) -> Int {
-        (Int(sector) + 1) * sectorSize
+    private static func sectorOffset(_ sector: UInt32, sectorSize: Int) -> Int? {
+        let (offset, overflow) = (Int(sector) + 1).multipliedReportingOverflow(by: sectorSize)
+        return overflow ? nil : offset
     }
 
     private static func readFAT(data: Data, sectorSize: Int, difat: [UInt32]) -> [UInt32] {
         var fat: [UInt32] = []
         let entriesPerSector = sectorSize / 4
-        fat.reserveCapacity(difat.count * entriesPerSector)
         for fatSector in difat where fatSector < 0xFFFFFFF0 {
-            let offset = sectorOffset(fatSector, sectorSize: sectorSize)
-            guard offset + sectorSize <= data.count else { continue }
+            guard let offset = sectorOffset(fatSector, sectorSize: sectorSize),
+                  offset <= data.count, sectorSize <= data.count - offset else { continue }
             for i in 0..<entriesPerSector {
                 fat.append(readU32(data, at: offset + i * 4))
             }
@@ -431,9 +444,10 @@ struct CFB {
         while sector < 0xFFFFFFF0 {
             if visited.contains(sector) { break }
             visited.insert(sector)
-            let offset = sectorOffset(sector, sectorSize: sectorSize)
-            guard offset + sectorSize <= data.count else { break }
-            result.append(data[offset..<(offset + sectorSize)])
+            guard let offset = sectorOffset(sector, sectorSize: sectorSize),
+                  offset <= data.count, sectorSize <= data.count - offset else { break }
+            let start = data.startIndex + offset
+            result.append(data[start..<(start + sectorSize)])
             guard Int(sector) < fat.count else { break }
             sector = fat[Int(sector)]
         }
@@ -452,8 +466,8 @@ struct CFB {
         while sector < 0xFFFFFFF0 {
             if visited.contains(sector) { break }
             visited.insert(sector)
-            let offset = Int(sector) * miniSectorSize
-            guard offset + miniSectorSize <= miniStream.count else { break }
+            let (offset, overflow) = Int(sector).multipliedReportingOverflow(by: miniSectorSize)
+            guard !overflow, offset <= miniStream.count, miniSectorSize <= miniStream.count - offset else { break }
             result.append(miniStream[(miniStream.startIndex + offset)..<(miniStream.startIndex + offset + miniSectorSize)])
             guard Int(sector) < miniFat.count else { break }
             sector = miniFat[Int(sector)]
