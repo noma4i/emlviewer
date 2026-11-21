@@ -151,28 +151,23 @@ public enum MIME {
         }
 
         var params: [String: String] = [:]
-        var continuations: [String: [Int: String]] = [:]
-        var rfc2231: [String: (charset: String?, lang: String?, value: String)] = [:]
+        var continuations: [String: [Int: (value: String, encoded: Bool)]] = [:]
 
         for (k, v) in raw {
             if let asterisk = k.firstIndex(of: "*") {
                 let base = String(k[..<asterisk])
                 let rest = String(k[k.index(after: asterisk)...])
                 if rest.isEmpty {
-                    // name* = charset'lang'encoded
-                    let parts = v.split(separator: "'", maxSplits: 2, omittingEmptySubsequences: false).map(String.init)
+                    let parts = v.split(separator: "'", maxSplits: 2, omittingEmptySubsequences: false)
                     if parts.count == 3 {
-                        rfc2231[base] = (parts[0].isEmpty ? nil : parts[0],
-                                         parts[1].isEmpty ? nil : parts[1],
-                                         parts[2])
-                    } else {
-                        params[base] = v
-                    }
+                        let charset = parts[0].isEmpty ? nil : String(parts[0])
+                        params[base] = Decoding.string(from: percentDecode(String(parts[2])), charset: charset)
+                    } else { params[base] = v }
                 } else {
                     let encoded = rest.hasSuffix("*")
                     let numStr = encoded ? String(rest.dropLast()) : rest
                     if let idx = Int(numStr) {
-                        continuations[base, default: [:]][idx] = encoded ? percentDecode(v) : v
+                        continuations[base, default: [:]][idx] = (v, encoded)
                     } else {
                         params[k] = v
                     }
@@ -183,35 +178,34 @@ public enum MIME {
         }
 
         for (name, chunks) in continuations {
-            let joined = chunks.keys.sorted().map { chunks[$0] ?? "" }.joined()
-            if let (cs, _, encoded) = rfc2231[name] {
-                let decoded = percentDecode(encoded + joined)
-                let data = decoded.data(using: .isoLatin1) ?? Data(decoded.utf8)
-                params[name] = Decoding.string(from: data, charset: cs)
-            } else {
-                params[name] = joined
+            var charset: String?
+            var data = Data()
+            for index in chunks.keys.sorted() {
+                guard let chunk = chunks[index] else { continue }
+                var value = chunk.value
+                if index == 0 && chunk.encoded {
+                    let parts = value.split(separator: "'", maxSplits: 2, omittingEmptySubsequences: false)
+                    if parts.count == 3 {
+                        charset = parts[0].isEmpty ? nil : String(parts[0])
+                        value = String(parts[2])
+                    }
+                }
+                data.append(chunk.encoded ? percentDecode(value) : Data(value.utf8))
             }
-        }
-        for (name, parts) in rfc2231 where continuations[name] == nil {
-            let decoded = percentDecode(parts.value)
-            let data = decoded.data(using: .isoLatin1) ?? Data(decoded.utf8)
-            params[name] = Decoding.string(from: data, charset: parts.charset)
+            params[name] = Decoding.string(from: data, charset: charset)
         }
         return (main, params)
     }
 
-    private static func percentDecode(_ s: String) -> String {
-        var out = ""
-        let chars = Array(s)
+    private static func percentDecode(_ s: String) -> Data {
+        var out = Data()
+        let chars = Array(s.utf8)
         var i = 0
         while i < chars.count {
-            if chars[i] == "%", i + 2 < chars.count,
-               let hi = Int(String(chars[i + 1]), radix: 16),
-               let lo = Int(String(chars[i + 2]), radix: 16) {
-                let byte = UInt8((hi << 4) | lo)
-                if let scalar = Unicode.Scalar(UInt32(byte)) {
-                    out.append(Character(scalar))
-                }
+            if chars[i] == 0x25, i + 2 < chars.count,
+               let hex = String(bytes: chars[(i + 1)...(i + 2)], encoding: .ascii),
+               let byte = UInt8(hex, radix: 16) {
+                out.append(byte)
                 i += 3
             } else {
                 out.append(chars[i]); i += 1

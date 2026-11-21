@@ -58,6 +58,23 @@ final class MIMETests: XCTestCase {
         XCTAssertEqual(params["filename"], "Naïve.txt")
     }
 
+    func testStructuredHeaderRFC2231EncodedSegments() {
+        let cases: [(String, String)] = [
+            ("filename*0*=utf-8''TEE%20-%20Scheduled%20Goods%20Acknowledgement%20Form%20%28; " +
+             "filename*1*=Signed%29%20-%20NSTA1131-205%2C%20102954.pdf",
+             "TEE - Scheduled Goods Acknowledgement Form (Signed) - NSTA1131-205, 102954.pdf"),
+            ("filename*0*=utf-8''%D0%9E%D1%82%D1%87%D1%91%D1%82%20%D0%B7%D0%B0%20%D0%BD; " +
+             "filename*1*=%D0%BE%D1%8F%D0%B1%D1%80%D1%8C.txt",
+             "\u{41E}\u{442}\u{447}\u{451}\u{442} \u{437}\u{430} \u{43D}\u{43E}\u{44F}\u{431}\u{440}\u{44C}.txt"),
+            ("filename*0*=utf-8''caf%C3%A9%20; filename*1=report.txt", "caf\u{E9} report.txt"),
+            ("filename*=utf-8''caf%C3%A9.txt", "caf\u{E9}.txt")
+        ]
+        for (parameter, expected) in cases {
+            let (_, params) = MIME.parseStructuredHeader("attachment; " + parameter)
+            XCTAssertEqual(params["filename"], expected)
+        }
+    }
+
     // MARK: - Simple text/plain message
 
     func testSimpleTextPlain() {
