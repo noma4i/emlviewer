@@ -7,7 +7,7 @@ struct EMLViewerApp: App {
     @StateObject private var state = AppState.shared
 
     var body: some Scene {
-        WindowGroup {
+        Window("EMLViewer", id: "main") {
             ContentView()
                 .environmentObject(state)
                 .frame(minWidth: 520, minHeight: 380)

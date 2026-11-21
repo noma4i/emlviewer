@@ -142,7 +142,7 @@ struct HeaderPanel: View {
 struct BodyView: View {
     let message: LoadedMessage
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
-    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFontFamily
+    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
 
     var body: some View {
         Group {

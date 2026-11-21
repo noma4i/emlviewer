@@ -6,13 +6,7 @@ enum AppPreferences {
     static let fontSize = "com.noma4i.emlviewer.fontSize"
     static let fontFamily = "com.noma4i.emlviewer.fontFamily"
 
-    static var defaultFontFamily: String {
-        let defaults = UserDefaults.standard
-        if let family = defaults.string(forKey: fontFamily) { return family }
-        let family = defaults.string(forKey: "com.noma4i.emlviewer.plainFont") == "proportional" ? "System" : "Menlo"
-        defaults.set(family, forKey: fontFamily)
-        return family
-    }
+    static let defaultFont = "Menlo"
 
     static let fontFamilies = [
         "System", "SF Mono", "Menlo", "Monaco", "Courier New", "Helvetica Neue", "Helvetica", "Arial",
@@ -32,7 +26,7 @@ enum AppPreferences {
 struct SettingsView: View {
     @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
-    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFontFamily
+    @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
 
     var body: some View {
         Form {
