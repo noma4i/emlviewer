@@ -36,7 +36,7 @@
           </span>
         </a>
         <div class="hero-shot">
-          <img src="/img/01.png" alt="EML/MSG Viewer displaying a message" />
+          <video autoplay muted loop playsinline preload="auto" poster="/img/01.png" aria-label="EML/MSG Viewer demo"><source src="/video/preview.mp4" type="video/mp4"></video>
         </div>
       </section>
       <section class="section wrap">
@@ -140,5 +140,8 @@
         </nav>
       </div>
     </footer>
+    <script>
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.querySelector('.hero-shot video').pause();
+    </script>
   </body>
 </html>
