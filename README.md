@@ -7,7 +7,7 @@
 Minimalist `.eml` and `.msg` viewer for macOS. Double-click an email in Finder - the window opens, renders the message and gets out of your way. Built with Swift, SwiftUI, AppKit and WKWebView. Zero runtime dependencies.
 
 <p align="center">
-  <img src="AppStore/screenshots/en-US/01-open-eml.png" alt="EMLViewer rendering an .eml" width="720">
+  <a href="AppStore/previews/en-US/preview.mp4"><img src="AppStore/previews/en-US/preview.gif" alt="EML/MSG Viewer demo" width="720"></a>
 </p>
 
 ## Features
