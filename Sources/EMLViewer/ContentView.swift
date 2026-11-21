@@ -10,7 +10,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if let msg = state.message {
-                MessageView(message: msg)
+                MessageView(message: msg).id(msg.id)
             } else {
                 WelcomeView()
             }
