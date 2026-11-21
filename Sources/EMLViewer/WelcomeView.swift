@@ -132,6 +132,9 @@ struct WelcomeView: View {
             Text("MIT License · 2026 Alexander Tsirel")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+
+            SettingsLink { Image(systemName: "gearshape") }
+                .help("Settings")
         }
     }
 

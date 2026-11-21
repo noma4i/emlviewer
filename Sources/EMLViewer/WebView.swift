@@ -5,6 +5,7 @@ import EMLCore
 struct WebView: NSViewRepresentable {
     let html: String
     let message: LoadedMessage
+    @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -21,6 +22,8 @@ struct WebView: NSViewRepresentable {
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
+        let zoom = fontSize / 13
+        if view.pageZoom != zoom { view.pageZoom = zoom }
         if context.coordinator.loadedID != message.id {
             context.coordinator.handler?.message = message.message
             view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))

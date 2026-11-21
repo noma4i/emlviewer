@@ -24,6 +24,9 @@ struct EMLViewerApp: App {
                     .keyboardShortcut("o")
             }
         }
+        Settings {
+            SettingsView()
+        }
     }
 
     @MainActor

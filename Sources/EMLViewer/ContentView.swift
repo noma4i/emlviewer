@@ -100,15 +100,20 @@ struct HeaderPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(message.subject.isEmpty ? "(no subject)" : message.subject)
-                .font(.title2.weight(.semibold))
-                .textSelection(.enabled)
-                .lineLimit(3)
+            HStack(alignment: .top) {
+                Text(message.subject.isEmpty ? "(no subject)" : message.subject)
+                    .font(.title2.weight(.semibold))
+                    .textSelection(.enabled)
+                    .lineLimit(3)
+                Spacer()
+                SettingsLink { Image(systemName: "gearshape") }
+                    .help("Settings")
+            }
 
             VStack(alignment: .leading, spacing: 3) {
                 row("From", message.from)
                 row("To", message.to)
-                if !message.cc.isEmpty { row("Cc", message.cc) }
+                row("Cc", message.cc)
                 row("Date", message.date)
             }
             .font(.system(size: 12))
@@ -121,19 +126,23 @@ struct HeaderPanel: View {
 
     @ViewBuilder
     private func row(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .frame(width: 42, alignment: .trailing)
-            Text(value)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        if !value.isEmpty {
+            HStack(alignment: .top, spacing: 8) {
+                Text(label)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 42, alignment: .trailing)
+                Text(value)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }
 
 struct BodyView: View {
     let message: LoadedMessage
+    @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
+    @AppStorage(AppPreferences.plainFont) private var plainFont = "monospaced"
 
     var body: some View {
         Group {
@@ -145,7 +154,7 @@ struct BodyView: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(18)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: fontSize, design: plainFont == "monospaced" ? .monospaced : .default))
                 }
             } else {
                 Text("(no body)")

@@ -71,6 +71,13 @@ final class MSGTests: XCTestCase {
         XCTAssertEqual(msg.date, "Thu, 16 Apr 2026 14:30:00 +0000")
     }
 
+    func testDatePriority() {
+        XCTAssertEqual(MSG.preferredDate(["0039": "submit", "0E06": "delivery", "3007": "creation"]), "submit")
+        XCTAssertEqual(MSG.preferredDate(["0E06": "delivery", "3007": "creation"]), "delivery")
+        XCTAssertEqual(MSG.preferredDate(["3007": "creation"]), "creation")
+        XCTAssertNil(MSG.preferredDate([:]))
+    }
+
     func testPlainBodyDecoded() throws {
         let msg = try loadSample()
         let body = try XCTUnwrap(msg.plainBody)

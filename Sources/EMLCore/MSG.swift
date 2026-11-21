@@ -23,7 +23,7 @@ public enum MSG {
         var senderEmail: String?
         var displayTo: String?
         var displayCc: String?
-        var date: String?
+        var dates: [String: String] = [:]
         var plainBody: String?
         var htmlBody: String?
         var attachments: [AttachmentDraft] = []
@@ -39,7 +39,8 @@ public enum MSG {
                 case "0C1F": senderEmail = decodeString(payload, type: type)
                 case "0E04": displayTo   = decodeString(payload, type: type)
                 case "0E03": displayCc   = decodeString(payload, type: type)
-                case "0039": if type == "0040" { date = decodeFiletime(payload) }
+                case "0039", "0E06", "3007":
+                    if type == "0040" { dates[tag] = decodeFiletime(payload) }
                 case "1000": plainBody = decodeString(payload, type: type)
                 case "1013": htmlBody  = decodeHTML(payload, type: type)
                 default: break
@@ -57,11 +58,15 @@ public enum MSG {
             senderEmail: senderEmail,
             displayTo: displayTo,
             displayCc: displayCc,
-            date: date,
+            date: preferredDate(dates),
             plainBody: plainBody,
             htmlBody: htmlBody,
             attachments: attachments
         )
+    }
+
+    static func preferredDate(_ dates: [String: String]) -> String? {
+        dates["0039"] ?? dates["0E06"] ?? dates["3007"]
     }
 
     private struct AttachmentDraft {
