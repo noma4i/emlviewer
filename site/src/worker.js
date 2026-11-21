@@ -59,6 +59,8 @@ async function feedback(request, env) {
     `From: ${sender}`,
     `To: ${recipient}`,
     ...(email ? [`Reply-To: ${email}`] : []),
+    `Date: ${new Date().toUTCString()}`,
+    `Message-ID: <${crypto.randomUUID()}@emlviewer.noma4i.com>`,
     `Subject: ${subjectWords}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=UTF-8",
