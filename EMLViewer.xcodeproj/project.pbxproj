@@ -11,7 +11,7 @@
 		1125E89FEEC0F8B65FEDBAEF /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE5D03C429C4961D93A4790 /* WebView.swift */; };
 		16A8777B2561D857F0B738F6 /* EMLCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3588853051FD35CB996A4581 /* EMLCore.framework */; };
 		18F327BE1DA056D1CCD38B5C /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478F62C22E29C0C5B38DD7BB /* AppPreferences.swift */; };
-		24D453F3C4599784DC013671 /* Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA93DD6EAA76EE55B50A7AC /* Appearance.swift */; };
+		24D453F3C4599784DC013671 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA93DD6EAA76EE55B50A7AC /* Theme.swift */; };
 		2E1B8D6CCDB02DCF0051D0E9 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = B264DFBFC41A217F0760E622 /* Message.swift */; };
 		3383AFD03D2E0FCED3C7BAC0 /* EMLViewerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7BBAEAC864D30481181632 /* EMLViewerApp.swift */; };
 		3E5AC88A38981B30A73E314B /* sample.eml in Resources */ = {isa = PBXBuildFile; fileRef = 4A97FAAAF1DB818440AE77D1 /* sample.eml */; };
@@ -77,7 +77,7 @@
 		B8F3D926B31D7775591302B3 /* EMLViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EMLViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9D407AB13908197DC998F4B /* EMLCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EMLCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9F04655DB39B1885D1D7D84 /* emlcheck */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = emlcheck; sourceTree = BUILT_PRODUCTS_DIR; };
-		CFA93DD6EAA76EE55B50A7AC /* Appearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Appearance.swift; sourceTree = "<group>"; };
+		CFA93DD6EAA76EE55B50A7AC /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D974D993616669BA79853549 /* github.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = github.png; sourceTree = "<group>"; };
 		DA84B0418D3FEC2BE6490705 /* Decoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Decoding.swift; sourceTree = "<group>"; };
 		EC7BBAEAC864D30481181632 /* EMLViewerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EMLViewerApp.swift; sourceTree = "<group>"; };
@@ -177,7 +177,7 @@
 			isa = PBXGroup;
 			children = (
 				DBD209E87143FC6B1BF9E41F /* Resources */,
-				CFA93DD6EAA76EE55B50A7AC /* Appearance.swift */,
+				CFA93DD6EAA76EE55B50A7AC /* Theme.swift */,
 				478F62C22E29C0C5B38DD7BB /* AppPreferences.swift */,
 				A019B2997EBD993F2D5C1285 /* AppState.swift */,
 				894CFF355D5B5A655AF6FF4E /* ContentView.swift */,
@@ -371,7 +371,7 @@
 			files = (
 				18F327BE1DA056D1CCD38B5C /* AppPreferences.swift in Sources */,
 				76601520C55DDCA9014FE129 /* AppState.swift in Sources */,
-				24D453F3C4599784DC013671 /* Appearance.swift in Sources */,
+				24D453F3C4599784DC013671 /* Theme.swift in Sources */,
 				6732488D722007DC59C00F37 /* ContentView.swift in Sources */,
 				3383AFD03D2E0FCED3C7BAC0 /* EMLViewerApp.swift in Sources */,
 				1125E89FEEC0F8B65FEDBAEF /* WebView.swift in Sources */,

@@ -25,18 +25,13 @@ enum AppPreferences {
 }
 
 struct SettingsView: View {
-    @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
     @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
 
     var body: some View {
         Form {
-            Picker("Appearance", selection: $appearance) {
-                ForEach(AppearanceMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
+            ThemePicker(selection: $appearance)
             Picker("Message text size", selection: $fontSize) {
                 ForEach([10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24], id: \.self) { size in
                     Text("\(size) pt").tag(Double(size))

@@ -5,6 +5,9 @@ import EMLCore
 struct WebView: NSViewRepresentable {
     let html: String
     let message: LoadedMessage
+    @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    private var palette: ThemePalette { appearance.palette(scheme) }
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
     @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
 
@@ -18,59 +21,60 @@ struct WebView: NSViewRepresentable {
         context.coordinator.handler = handler
 
         let view = WKWebView(frame: .zero, configuration: config)
-        view.underPageBackgroundColor = .textBackgroundColor
+        view.underPageBackgroundColor = palette.nsColor(palette.background)
         view.navigationDelegate = context.coordinator
         return view
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
+        view.underPageBackgroundColor = palette.nsColor(palette.background)
         let zoom = fontSize / 13
         if view.pageZoom != zoom { view.pageZoom = zoom }
-        if context.coordinator.loadedID != message.id || context.coordinator.loadedFont != fontFamily {
+        if context.coordinator.loadedID != message.id || context.coordinator.loadedFont != fontFamily
+            || context.coordinator.loadedTheme != appearance || context.coordinator.loadedScheme != scheme {
             context.coordinator.handler?.message = message.message
             view.loadHTMLString(wrappedHTML(html), baseURL: URL(string: "cid:/"))
             context.coordinator.loadedID = message.id
             context.coordinator.loadedFont = fontFamily
+            context.coordinator.loadedTheme = appearance
+            context.coordinator.loadedScheme = scheme
         }
     }
 
     private func wrappedHTML(_ inner: String) -> String {
         let family = fontFamily == "System" ? "-apple-system" : "\"\(fontFamily)\""
+        let dark = appearance == .system ? scheme == .dark : appearance.isDark
         let style = """
         <style>
-        :root{color-scheme:light dark}
-        body{font-family:\(family);}
-        @media (prefers-color-scheme: dark){
-        html{background:#e2e2e2 !important;filter:invert(1) hue-rotate(180deg)}
-        img,video,picture,canvas,svg image,[background],[style*="background-image"]{
-        filter:invert(1) hue-rotate(180deg)}
-        }
+        :root{color-scheme:\(dark ? "dark" : "light")}
+        html,body{background:\(palette.background) !important;color:\(palette.text) !important}
+        body{font-family:\(family)}
+        body :where(*:not(img):not(svg):not(video):not(picture)){color:inherit !important;
+        background-color:transparent !important;border-color:\(palette.border) !important}
+        a,a *{color:\(palette.link) !important}
+        blockquote{border-left:3px solid \(palette.border) !important;color:\(palette.secondaryText) !important;padding-left:10px}
+        hr{border-color:\(palette.border) !important}
         </style>
         """
-        if inner.range(of: "<html\\b", options: [.regularExpression, .caseInsensitive]) != nil {
-            if let head = inner.range(of: "<head\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
-                var document = inner
-                document.insert(contentsOf: style, at: head.upperBound)
-                return document
-            }
-            if let html = inner.range(of: "<html\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
-                var document = inner
-                document.insert(contentsOf: "<head>\(style)</head>", at: html.upperBound)
-                return document
-            }
+        if let headEnd = inner.range(of: "</head\\s*>", options: [.regularExpression, .caseInsensitive]) {
+            var document = inner
+            document.insert(contentsOf: style, at: headEnd.lowerBound)
+            return document
         }
-        return """
-        <!doctype html>
-        <html><head><meta charset="utf-8">
-        \(style)<style>body{padding:16px;color:#222;}</style>
-        </head><body>\(inner)</body></html>
-        """
+        if let body = inner.range(of: "<body\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
+            var document = inner
+            document.insert(contentsOf: style, at: body.upperBound)
+            return document
+        }
+        return "<!doctype html><html><head><meta charset=\"utf-8\">\(style)</head><body>\(inner)</body></html>"
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         var handler: CIDSchemeHandler?
         var loadedID: UUID?
         var loadedFont: String?
+        var loadedTheme: Theme?
+        var loadedScheme: ColorScheme?
 
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,

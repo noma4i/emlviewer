@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 struct WelcomeView: View {
     @EnvironmentObject var state: AppState
-    @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
 
     @State private var isDefault: Bool = false
     @State private var assocStatus: String?
@@ -95,19 +95,8 @@ struct WelcomeView: View {
     }
 
     private var appearanceRow: some View {
-        HStack(spacing: 10) {
-            Text("Appearance")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-            Picker("", selection: $appearance) {
-                ForEach(AppearanceMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+        ThemePicker(selection: $appearance)
             .frame(width: 240)
-        }
     }
 
     private var footer: some View {

@@ -5,7 +5,8 @@ import EMLCore
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
-    @AppStorage(AppPreferences.appearance) private var appearance = AppearanceMode.system
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ZStack {
@@ -16,7 +17,7 @@ struct ContentView: View {
             }
             ToastOverlay()
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(appearance.palette(scheme).color(appearance.palette(scheme).background))
         .background(WindowAccessor())
         .onChange(of: appearance) { _, mode in
             mode.applyToApp()
@@ -105,14 +106,17 @@ struct ToastOverlay: View {
 
 struct MessageView: View {
     let message: LoadedMessage
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    @Environment(\.colorScheme) private var scheme
+    private var palette: ThemePalette { appearance.palette(scheme) }
 
     var body: some View {
         VStack(spacing: 0) {
             HeaderPanel(message: message.message)
-            Divider().opacity(0.6)
+            palette.color(palette.border).frame(height: 1)
             BodyView(message: message)
             if !message.attachments.isEmpty {
-                Divider().opacity(0.6)
+                palette.color(palette.border).frame(height: 1)
                 AttachmentsBar(attachments: message.attachments)
             }
         }
@@ -122,6 +126,9 @@ struct MessageView: View {
 struct HeaderPanel: View {
     let message: Message
     @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    private var palette: ThemePalette { appearance.palette(scheme) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -149,7 +156,8 @@ struct HeaderPanel: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+        .foregroundStyle(palette.color(palette.text))
+        .background(palette.color(palette.surface))
     }
 
     @ViewBuilder
@@ -157,7 +165,7 @@ struct HeaderPanel: View {
         if !value.isEmpty {
             HStack(alignment: .top, spacing: 8) {
                 Text(label)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.color(palette.secondaryText))
                     .frame(width: 42, alignment: .trailing)
                 Text(value)
                     .textSelection(.enabled)
@@ -169,6 +177,9 @@ struct HeaderPanel: View {
 
 struct BodyView: View {
     let message: LoadedMessage
+    @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    private var palette: ThemePalette { appearance.palette(scheme) }
     @AppStorage(AppPreferences.fontSize) private var fontSize = 13.0
     @AppStorage(AppPreferences.fontFamily) private var fontFamily = AppPreferences.defaultFont
 
@@ -190,6 +201,8 @@ struct BodyView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .foregroundStyle(palette.color(palette.text))
+        .background(palette.color(palette.background))
     }
 }
 
@@ -197,6 +210,9 @@ struct BodyView: View {
 
 struct AttachmentsBar: View {
     let attachments: [AttachmentItem]
+    @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    private var palette: ThemePalette { appearance.palette(scheme) }
     @EnvironmentObject var state: AppState
 
     var body: some View {
@@ -213,7 +229,7 @@ struct AttachmentsBar: View {
                 .help("Save all attachments to a folder")
             }
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(palette.color(palette.secondaryText))
             .padding(.horizontal, 14)
             .padding(.top, 10)
             .padding(.bottom, 2)
@@ -229,12 +245,15 @@ struct AttachmentsBar: View {
                 .padding(.bottom, 12)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(palette.color(palette.surface))
     }
 }
 
 struct AttachmentChip: View {
     let item: AttachmentItem
+    @Environment(\.colorScheme) private var scheme
+    @AppStorage(AppPreferences.appearance) private var appearance = Theme.system
+    private var palette: ThemePalette { appearance.palette(scheme) }
     @EnvironmentObject var state: AppState
     @State private var hovered = false
     private var part: Part { item.part }
@@ -253,18 +272,19 @@ struct AttachmentChip: View {
                         .frame(maxWidth: 220, alignment: .leading)
                     Text(item.sizeText)
                         .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(palette.color(palette.secondaryText))
                 }
             }
+            .foregroundStyle(palette.color(palette.text))
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(nsColor: .windowBackgroundColor))
+                    .fill(palette.color(palette.background))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.secondary.opacity(hovered ? 0.45 : 0.18))
+                    .strokeBorder(palette.color(palette.border))
             )
             .shadow(color: .black.opacity(hovered ? 0.08 : 0.0), radius: 3, y: 1)
             .scaleEffect(hovered ? 1.02 : 1.0)

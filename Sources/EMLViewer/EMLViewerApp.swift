@@ -47,7 +47,7 @@ struct EMLViewerApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
-        AppearanceMode.load().applyToApp()
+        Theme.load().applyToApp()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
