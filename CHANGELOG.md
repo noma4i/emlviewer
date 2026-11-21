@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.0.1] - 2026-11-21
+
+### Added
+
+- Ten color themes: Light, Dark, Solarized Light and Dark, Nord, Dracula, Gruvbox Dark, One Dark and Sepia. HTML mail is recolored to stay readable.
+- Settings for message font family and text size.
+- Setting to load or block remote images in HTML mail.
+- Save All saves attachments to a folder you choose.
+- Recipient addresses in Outlook .msg files.
+
+### Changed
+
+- Opened mail renders without delay, including on cold launch.
+- Message dates are shown in the local time zone.
+- Opening another file reuses the existing window, and the window size is restored between launches.
+- Faster message parsing.
+
+### Fixed
+
+- RFC 2231 continuation decoding of attachment names.
+- Header refresh when opening another message.
+- Hardened Outlook .msg (CFB) sector parsing and attachment file name sanitizing.
+
 ## [1.0.0] - 2026-04-16
 
 ### Added
