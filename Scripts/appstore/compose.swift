@@ -6,12 +6,12 @@ let raw = root.appendingPathComponent("Scripts/appstore/raw")
 let output = root.appendingPathComponent("AppStore/screenshots/en-US")
 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 let frames: [(String, String, String, String, Bool)] = [
-    ("01-open-eml", "hero-light", "Every email, beautifully clear", "Open .eml files and see every detail.", false),
-    ("02-open-msg", "outlook", "Outlook messages made simple", "Read .msg files right on your Mac.", false),
-    ("03-attachments", "attachments", "Every attachment within reach", "Find and save your files in one place.", false),
-    ("04-dark", "hero-dark", "Ten themes, always readable", "Read comfortably in your preferred appearance.", true),
-    ("05-settings", "settings-message", "Make reading your own", "Choose your font, size, and appearance.", false),
-    ("06-welcome", "welcome", "Open mail in a click", "A simple home for .eml and .msg files.", false)
+    ("01-open-eml", "hero-light", "Open .eml files without a mail client", "Headers, HTML body and inline images in one window.", false),
+    ("02-open-msg", "outlook", "Open Outlook .msg files", "No Outlook required.", false),
+    ("03-attachments", "attachments", "Open or save attachments", "Open in the default app or save all to a folder.", false),
+    ("04-dark", "hero-dark", "Dark mode and color themes", "HTML mail is recolored to stay readable.", true),
+    ("05-settings", "settings-message", "Font, size and theme", "Set them once in Settings.", false),
+    ("06-welcome", "welcome", "Double-click to open", "Set as the default app for .eml and .msg in Finder.", false)
 ]
 let size = NSSize(width: 2880, height: 1800)
 let cs = CGColorSpace(name: CGColorSpace.sRGB)!
