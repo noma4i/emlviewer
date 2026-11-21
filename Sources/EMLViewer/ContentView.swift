@@ -46,7 +46,9 @@ struct WindowAccessor: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard configuredWindow !== window else { return }
-            NotificationCenter.default.removeObserver(self)
+            for name in [NSWindow.didResizeNotification, NSWindow.didMoveNotification, NSWindow.willCloseNotification] {
+                NotificationCenter.default.removeObserver(self, name: name, object: nil)
+            }
             configuredWindow = window
             guard let window else { return }
             DispatchQueue.main.async {

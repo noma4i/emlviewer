@@ -60,11 +60,11 @@ enum Theme: String, CaseIterable, Identifiable {
         case .dark: .init(background: "#1e1e1e", surface: "#2c2c2e", text: "#e6e6e6",
                               secondaryText: "#b0b0b0", link: "#64aaff",
                               border: "#555555", quote: "#b0b0b0")
-        case .solarizedLight: .init(background: "#fdf6e3", surface: "#eee8d5", text: "#657b83",
-                              secondaryText: "#586e75", link: "#268bd2",
+        case .solarizedLight: .init(background: "#fdf6e3", surface: "#eee8d5", text: "#586e75",
+                              secondaryText: "#657b83", link: "#268bd2",
                               border: "#93a1a1", quote: "#586e75")
-        case .solarizedDark: .init(background: "#002b36", surface: "#073642", text: "#839496",
-                              secondaryText: "#93a1a1", link: "#268bd2",
+        case .solarizedDark: .init(background: "#002b36", surface: "#073642", text: "#93a1a1",
+                              secondaryText: "#839496", link: "#268bd2",
                               border: "#586e75", quote: "#93a1a1")
         case .nord: .init(background: "#2e3440", surface: "#3b4252", text: "#eceff4",
                               secondaryText: "#d8dee9", link: "#88c0d0",
