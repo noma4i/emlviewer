@@ -97,6 +97,7 @@ struct MessageView: View {
 
 struct HeaderPanel: View {
     let message: Message
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -114,7 +115,10 @@ struct HeaderPanel: View {
                 row("From", message.from)
                 row("To", message.to)
                 row("Cc", message.cc)
-                row("Date", message.date)
+                row("Date", message.sentDate?.formatted(
+                    Date.FormatStyle(locale: locale, timeZone: .current)
+                        .weekday(.abbreviated).day().month(.abbreviated).year().hour().minute()
+                ) ?? message.date)
             }
             .font(.system(size: 12))
         }

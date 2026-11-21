@@ -39,6 +39,26 @@ public struct Message: Sendable {
     public var bcc: String { decodedHeader("Bcc") }
     public var subject: String { decodedHeader("Subject") }
     public var date: String { decodedHeader("Date") }
+    public var sentDate: Date? {
+        let pattern = #"^(?:[A-Za-z]{3},\s*)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2}|\d{4})\s+"# +
+            #"(\d{2}:\d{2}(?::\d{2})?)\s+([+-]\d{4}|UT|GMT|Z|EST|EDT|CST|CDT|MST|MDT|PST|PDT)(?:\s*\([^()]*\))?\s*$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let match = regex.firstMatch(in: date, range: NSRange(date.startIndex..., in: date)) else { return nil }
+        let parts = (1...5).compactMap { Range(match.range(at: $0), in: date).map { String(date[$0]) } }
+        guard parts.count == 5, let year = Int(parts[2]) else { return nil }
+        let fullYear = parts[2].count == 2 ? (year < 50 ? 2000 + year : 1900 + year) : year
+        let zones = ["UT": "+0000", "GMT": "+0000", "Z": "+0000", "EST": "-0500", "EDT": "-0400",
+                     "CST": "-0600", "CDT": "-0500", "MST": "-0700", "MDT": "-0600",
+                     "PST": "-0800", "PDT": "-0700"]
+        let zone = zones[parts[4].uppercased()] ?? parts[4]
+        let time = parts[3].split(separator: ":").count == 2 ? parts[3] + ":00" : parts[3]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = "d MMM yyyy HH:mm:ss Z"
+        formatter.isLenient = false
+        return formatter.date(from: "\(parts[0]) \(parts[1]) \(fullYear) \(time) \(zone)")
+    }
     public var replyTo: String { decodedHeader("Reply-To") }
 
     public func decodedHeader(_ name: String) -> String {

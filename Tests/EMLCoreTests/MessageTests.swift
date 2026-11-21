@@ -62,6 +62,23 @@ final class MessageTests: XCTestCase {
         XCTAssertEqual(msg.date, "Wed, 25 Mar 2026 04:26:52 +0000")
     }
 
+    func testSentDateParsesMailDates() {
+        let cases: [(String, TimeInterval?)] = [
+            ("Wed, 25 Mar 2026 04:26:52 +0000", 1_774_412_812),
+            ("Tue, 24 Mar 2026 21:26:52 -0700", 1_774_412_812),
+            ("Wed, 25 Mar 2026 04:26:52 +0000 (UTC)", 1_774_412_812),
+            ("Wed, 25 Mar 2026 04:26:52 GMT", 1_774_412_812),
+            ("25 Mar 2026 04:26:52 +0000", 1_774_412_812),
+            ("25 Mar 2026 04:26 +0000", 1_774_412_760),
+            ("25 Mar 26 04:26:52 +0000", 1_774_412_812),
+            ("garbage", nil)
+        ]
+        for (header, expected) in cases {
+            let message = Message(data: eml("Date: \(header)\r\n\r\nbody"))
+            XCTAssertEqual(message.sentDate?.timeIntervalSince1970, expected, header)
+        }
+    }
+
     func testAddressDisplayNamesLoseQuotesAfterDecoding() {
         let raw = #"""
         From: "Gezen, Ahmet" <a@b>
