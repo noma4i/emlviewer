@@ -1,1 +1,1 @@
-email,mail,outlook,mime,attachment,reader
+outlook,mime,attachments,rfc822,archive,letter,headers,offline,mailbox,correspondence,charset

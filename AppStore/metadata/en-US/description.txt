@@ -1,7 +1,33 @@
-Open .eml and Outlook .msg files on your Mac. EML/MSG Viewer displays decoded message headers and HTML messages with inline images. When a message has no HTML body, it shows the plain text instead.
+Open saved email messages on your Mac with EML/MSG Viewer. Read the message, inspect its headers, and work with attachments in one window.
 
-Open attachments from the attachments bar, or use Save All to save them to a folder you choose.
+FORMATS
+• Open .eml messages with MIME content, including encoded headers and character sets.
+• Read Outlook .msg files without Outlook.
 
-Choose light, dark, or system appearance, and adjust the font family and size. You can also set the app as the default viewer for .eml and .msg files.
+READING
+• View HTML messages with inline images. If a message has no HTML body, the app shows its plain text body.
+• See decoded From, To, Cc, Subject, and Date headers alongside the message.
+• Read messages in a window that keeps the content in view.
 
-The app is sandboxed. No account is required, and the app collects no data.
+ATTACHMENTS
+• Find attachments in a bar with Finder-style file icons.
+• Open an attachment in its default app, or choose Save All to save attachments to a folder you select.
+• Attachment file names are sanitized when files are saved.
+
+COMFORT
+• Choose light, dark, or system appearance.
+• Set the message font family and text size in settings.
+• The app remembers its window size between launches.
+
+FINDER
+• Set EML/MSG Viewer as the default viewer for .eml and .msg files.
+• Double-click a message in Finder to open it in the app after setting the default.
+
+PRIVACY
+• The app is sandboxed and does not require an account.
+• The app collects no data and uses no analytics or tracking.
+• HTML messages may load remote images from their source servers.
+
+Use EML/MSG Viewer to read saved messages and open or save their attachments on your Mac. Choose the appearance and text settings that suit your reading preferences.
+
+Open saved messages directly from Finder after setting the app as your default viewer.

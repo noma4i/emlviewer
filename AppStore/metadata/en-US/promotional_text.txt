@@ -1,1 +1,1 @@
-Read EML and Outlook MSG files, view attachments, and choose your preferred appearance and font.
+Read saved messages on your Mac. Open EML and Outlook MSG files, view inline images, and save attachments to a folder you choose, with no account required.
