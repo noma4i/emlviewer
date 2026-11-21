@@ -6,7 +6,7 @@ TEST_FILE    ?= test.eml
 LSREG        := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 VERSION       = $(shell /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
 
-.PHONY: all build release debug run run-debug bundle install uninstall clean check test test-xcode cli icon zip print-version lint lint-strict screenshots
+.PHONY: all build release debug run run-debug bundle install uninstall clean check test test-xcode cli icon zip print-version lint lint-strict screenshots preview
 
 all: bundle
 
@@ -126,3 +126,6 @@ clean:
 
 screenshots:
 	bash Scripts/appstore-screenshots.sh
+
+preview:
+	bash Scripts/appstore/preview.sh
