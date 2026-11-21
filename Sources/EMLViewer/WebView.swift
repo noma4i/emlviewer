@@ -18,6 +18,7 @@ struct WebView: NSViewRepresentable {
         context.coordinator.handler = handler
 
         let view = WKWebView(frame: .zero, configuration: config)
+        view.underPageBackgroundColor = .textBackgroundColor
         view.navigationDelegate = context.coordinator
         return view
     }
@@ -35,7 +36,17 @@ struct WebView: NSViewRepresentable {
 
     private func wrappedHTML(_ inner: String) -> String {
         let family = fontFamily == "System" ? "-apple-system" : "\"\(fontFamily)\""
-        let style = "<style>body{font-family:\(family);}</style>"
+        let style = """
+        <style>
+        :root{color-scheme:light dark}
+        body{font-family:\(family);}
+        @media (prefers-color-scheme: dark){
+        html{background:#e2e2e2 !important;filter:invert(1) hue-rotate(180deg)}
+        img,video,picture,canvas,svg image,[background],[style*="background-image"]{
+        filter:invert(1) hue-rotate(180deg)}
+        }
+        </style>
+        """
         if inner.range(of: "<html\\b", options: [.regularExpression, .caseInsensitive]) != nil {
             if let head = inner.range(of: "<head\\b[^>]*>", options: [.regularExpression, .caseInsensitive]) {
                 var document = inner
@@ -51,7 +62,7 @@ struct WebView: NSViewRepresentable {
         return """
         <!doctype html>
         <html><head><meta charset="utf-8">
-        <style>body{font-family:\(family);padding:16px;color:#222;}</style>
+        \(style)<style>body{padding:16px;color:#222;}</style>
         </head><body>\(inner)</body></html>
         """
     }
