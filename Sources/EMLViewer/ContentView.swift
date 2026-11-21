@@ -177,12 +177,12 @@ struct AttachmentsBar: View {
                 Text("\(attachments.count) attachment\(attachments.count == 1 ? "" : "s")")
                 Spacer()
                 Button {
-                    state.downloadAll(attachments.map(\.part))
+                    state.saveAll(attachments.map(\.part))
                 } label: {
-                    Label("Download All", systemImage: "arrow.down.circle")
+                    Label("Save All…", systemImage: "square.and.arrow.down.on.square")
                 }
                 .buttonStyle(.borderless)
-                .help("Save all attachments to Downloads")
+                .help("Save all attachments to a folder")
             }
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(.secondary)

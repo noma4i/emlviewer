@@ -96,9 +96,21 @@ final class AppState: ObservableObject {
         }
     }
 
-    func downloadAll(_ attachments: [Part]) {
+    func saveAll(_ attachments: [Part]) {
         guard !attachments.isEmpty else { return }
-        let dir = downloadsDirectory()
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Save"
+        if let path = UserDefaults.standard.string(forKey: AppPreferences.lastSaveFolder),
+           FileManager.default.fileExists(atPath: path) {
+            panel.directoryURL = URL(fileURLWithPath: path, isDirectory: true)
+        } else {
+            panel.directoryURL = downloadsDirectory()
+        }
+        guard panel.runModal() == .OK, let dir = panel.url else { return }
+        UserDefaults.standard.set(dir.path, forKey: AppPreferences.lastSaveFolder)
         var saved: [URL] = []
         var failure: String?
 
@@ -106,7 +118,7 @@ final class AppState: ObservableObject {
             let base = sanitizedFilename(part.filename ?? "attachment")
             let target = uniqueURL(in: dir, filename: base)
             do {
-                try part.decodedBody().write(to: target, options: .atomic)
+                try part.decodedBody().write(to: target, options: .withoutOverwriting)
                 saved.append(target)
             } catch {
                 failure = "Could not save \(base): \(error.localizedDescription)"
@@ -117,7 +129,7 @@ final class AppState: ObservableObject {
             NSWorkspace.shared.activateFileViewerSelecting(saved)
             let n = saved.count
             if failure == nil {
-                showToast("Saved \(n) file\(n == 1 ? "" : "s") to Downloads")
+                showToast("Saved \(n) file\(n == 1 ? "" : "s") to \(dir.lastPathComponent)")
             }
         }
         if let failure { showToast(failure) }

@@ -5,6 +5,7 @@ enum AppPreferences {
     static let appearance = "com.noma4i.emlviewer.appearance"
     static let fontSize = "com.noma4i.emlviewer.fontSize"
     static let fontFamily = "com.noma4i.emlviewer.fontFamily"
+    static let lastSaveFolder = "com.noma4i.emlviewer.lastSaveFolder"
 
     static let defaultFont = "Menlo"
 
